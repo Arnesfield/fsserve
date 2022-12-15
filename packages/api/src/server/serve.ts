@@ -17,7 +17,8 @@ export async function serve(options: ServeOptions = {}): Promise<Server> {
       process.exitCode = 1;
       return;
     }
-    const target = path.relative('', path.resolve(options.cwd || '')) || '.';
+    const target =
+      path.relative('', path.resolve(options.rootDir || '')) || '.';
     const url = new URL(address);
     url.hostname = 'localhost';
     console.log('Serving:', target);

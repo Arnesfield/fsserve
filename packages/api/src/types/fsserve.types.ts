@@ -3,5 +3,5 @@ export interface FsServe {
 }
 
 export interface FsServeOptions {
-  cwd?: string;
+  rootDir?: string;
 }

@@ -10,11 +10,11 @@ export interface SafeFs {
   statDir(value: string): Promise<Stats>;
 }
 
-export function createSafeFs(cwd: string): SafeFs {
+export function createSafeFs(rootDir: string): SafeFs {
   return {
     resolve(...paths: string[]) {
       const resolvedPath = path.resolve(...paths);
-      if (!resolvedPath.startsWith(cwd)) {
+      if (!resolvedPath.startsWith(rootDir)) {
         throw createError(
           403,
           'Cannot access beyond current working directory.'
@@ -23,7 +23,7 @@ export function createSafeFs(cwd: string): SafeFs {
       return resolvedPath;
     },
     relative(...paths: string[]) {
-      return path.relative(cwd, this.resolve(...paths));
+      return path.relative(rootDir, this.resolve(...paths));
     },
     async stat(value: string) {
       try {
