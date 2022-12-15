@@ -40,6 +40,8 @@
     "test:watch": "npm run test:mocha -- --watch --watch-files src"
   },
   "dependencies": {
+    "chalk-template": "^0.4.0",
+    "commander": "^9.4.1",
     "fastify": "^4.10.2",
     "http-errors": "^2.0.0"
   },
