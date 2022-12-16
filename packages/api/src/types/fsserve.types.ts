@@ -4,4 +4,10 @@ export interface FsServe {
 
 export interface FsServeOptions {
   rootDir?: string;
+  operations?: {
+    download?: boolean;
+    remove?: boolean;
+    upload?: boolean;
+    modify?: boolean;
+  };
 }

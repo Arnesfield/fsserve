@@ -2,15 +2,12 @@ import { Server } from 'http';
 import path from 'path';
 import { ServeOptions } from '../types/serve.types';
 import { getNetworks } from '../utils/network';
+import { validatePort } from '../utils/validator';
 import { createServer } from './server';
 
 export async function serve(options: ServeOptions = {}): Promise<Server> {
   const port =
-    typeof options.port !== 'number'
-      ? 8080
-      : options.port > 0
-      ? options.port
-      : undefined;
+    typeof options.port !== 'number' ? 8080 : validatePort(options.port);
   const fastify = await createServer(options);
   fastify.listen({ port }, (error, address) => {
     if (error) {
