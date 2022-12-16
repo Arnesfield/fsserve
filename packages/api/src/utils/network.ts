@@ -1,14 +1,13 @@
-import { NetworkInterfaceInfoIPv4, networkInterfaces } from 'os';
+import { networkInterfaces } from 'os';
 
-export function getNetworks(): NetworkInterfaceInfoIPv4[] {
-  const allNetworks: NetworkInterfaceInfoIPv4[] = [];
+export function getAddresses(): string[] {
+  const addresses: string[] = ['localhost'];
   for (const networks of Object.values(networkInterfaces())) {
-    const nets = (networks || []).filter(
-      (network): network is NetworkInterfaceInfoIPv4 => {
-        return !network.internal && network.family === 'IPv4';
+    for (const network of networks || []) {
+      if (!network.internal && network.family === 'IPv4') {
+        addresses.push(network.address);
       }
-    );
-    allNetworks.push(...nets);
+    }
   }
-  return allNetworks;
+  return addresses;
 }
