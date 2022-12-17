@@ -4,11 +4,10 @@ import path from 'path';
 import { serve } from './server';
 import { ServeOptions } from './types/serve.types';
 import { pkg } from './utils/pkg';
-import { validatePort } from './utils/validator';
 
 process.on('SIGINT', () => {
   console.log(chalk`{red Stopped.}`);
-  process.exit();
+  process.exit(130); // Ctrl+C exit code
 });
 
 program
@@ -18,7 +17,7 @@ program
   .addOption(
     new Option('-p, --port <port>', 'server port')
       .default(8080)
-      .argParser(value => validatePort(parseInt(value)))
+      .argParser(value => parseInt(value))
   )
   .addOption(
     new Option(

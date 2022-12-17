@@ -5,6 +5,6 @@ import { fileRoute } from './file.route';
 // prefix: /api
 export const routes: FsServePluginCallback = (fastify, options) => {
   fastify.get('/', () => pkg);
-  fastify.register(fileRoute, { prefix: 'files', fsserve: options.fsserve });
+  fastify.register(fileRoute, { prefix: 'files', ctx: options.ctx });
   return fastify;
 };

@@ -3,12 +3,19 @@ import { Server } from 'http';
 import path from 'path';
 import { ServeOptions } from '../types/serve.types';
 import { getAddresses } from '../utils/network';
-import { validatePort } from '../utils/validator';
 import { createServer } from './server';
 
 export async function serve(options: ServeOptions = {}): Promise<Server> {
+  // TODO: transform and convert to validated options
   const port =
-    typeof options.port !== 'number' ? 8080 : validatePort(options.port);
+    typeof options.port !== 'number'
+      ? 8080
+      : options.port >= 0 && options.port < 65536
+      ? options.port
+      : undefined;
+  if (typeof port === 'undefined') {
+    throw new Error('Port should be a number >= 0 and < 65536.');
+  }
   const fastify = await createServer(options);
   fastify.listen({ port }, (error, address) => {
     if (error) {
@@ -43,7 +50,7 @@ export async function serve(options: ServeOptions = {}): Promise<Server> {
       const label = index > 0 ? spaces : chalk`{yellow ${addressesLabel}} `;
       console.log(chalk`%s  %s`, label, url.toString());
     });
-    console.log(chalk`\nPress {cyan CTRL+C} to {red stop}.`);
+    console.log(chalk`\nPress {cyan Ctrl+C} to {red stop}.`);
   });
   return fastify.server;
 }

@@ -1,10 +1,11 @@
 import { FastifyPluginCallback } from 'fastify';
+import { Validator } from '../utils/validator';
 import { FsServe } from './fsserve.types';
 
 // NOTE: internal
 
 export interface FsServePluginOptions {
-  fsserve: FsServe;
+  ctx: { fsserve: FsServe; validator: Validator };
 }
 
 export type FsServePluginCallback = FastifyPluginCallback<FsServePluginOptions>;

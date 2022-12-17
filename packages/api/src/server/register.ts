@@ -3,6 +3,6 @@ import { FsServePluginCallback } from '../types/plugin.types';
 
 export const register: FsServePluginCallback = (fastify, options) => {
   // TODO: serve web build
-  fastify.register(routes, { prefix: 'api', fsserve: options.fsserve });
+  fastify.register(routes, { prefix: 'api', ctx: options.ctx });
   return fastify;
 };
