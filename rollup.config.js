@@ -1,6 +1,5 @@
 import eslint from '@rollup/plugin-eslint';
 import json from '@rollup/plugin-json';
-import typescript from '@rollup/plugin-typescript';
 import { createRequire } from 'module';
 import bundleSize from 'rollup-plugin-bundle-size';
 import dts from 'rollup-plugin-dts';
@@ -9,13 +8,15 @@ import esbuild from 'rollup-plugin-esbuild';
 const pkg = createRequire(import.meta.url)('./package.json');
 const input = 'packages/api/src/index.ts';
 const WATCH = process.env.ROLLUP_WATCH === 'true';
-const external = ['fs/promises', 'http', 'https', 'os', 'path'].concat(
-  Object.keys(pkg.dependencies)
+const external = Object.keys(pkg.dependencies).concat(
+  'fs',
+  'fs/promises',
+  'http',
+  'https',
+  'os',
+  'path',
+  'stream'
 );
-
-function dev(options) {
-  return { input, external, watch: { skipWrite: true }, ...options };
-}
 
 const configs = [
   {
@@ -24,13 +25,17 @@ const configs = [
     plugins: [bundleSize(), dts()],
     external
   },
-  // lint and type checking
-  dev({ plugins: [eslint(), esbuild(), json()], include: WATCH }),
-  dev({ plugins: [typescript(), json()], include: WATCH })
+  {
+    input,
+    plugins: [eslint(), esbuild(), json()],
+    external,
+    watch: { skipWrite: true },
+    $include: WATCH
+  }
 ];
 
 export default configs.filter(config => {
-  const { include } = config;
-  delete config.include;
-  return typeof include !== 'boolean' || include;
+  const { $include } = config;
+  delete config.$include;
+  return typeof $include !== 'boolean' || $include;
 });

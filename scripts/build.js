@@ -30,7 +30,6 @@ function esbuild(options) {
 
 const input = 'packages/api/src/index.ts';
 
-const check = [!ARGS.watch && !ARGS.noCheck && 'npm:check'];
 const cjs = esbuild([input, '--format=cjs', '--out-extension:.js=.cjs']);
 const esm = esbuild([
   input,
@@ -47,12 +46,28 @@ const rollup = [
   ARGS.watch && '--watch --no-watch.clearScreen',
   ARGS.production && '--environment NODE_ENV:production'
 ];
+const eslint = [!ARGS.noCheck && ARGS.production && 'npm:lint:strict'];
+const tsc = [
+  !ARGS.noCheck && 'tsc',
+  '--noEmit',
+  ARGS.watch && '-w --preserveWatchOutput'
+];
+const scripts = { cjs, esm, rollup, eslint, tsc };
 
-const commands = [check, cjs, esm, rollup]
-  .filter(script => script[0])
-  .map(script => script.filter(s => s).join(' '));
+const commands = Object.entries(scripts)
+  .filter(([_, script]) => script[0])
+  .map(([key, script]) => {
+    /** @type {import('concurrently').ConcurrentlyCommandInput */
+    const cmd = { name: key, command: script.filter(s => s).join(' ') };
+    return cmd;
+  });
 
-const { result } = concurrently(commands, { raw: true, killOthers: 'failure' });
+const { result } = concurrently(commands, {
+  prefix: 'name',
+  raw: !ARGS.watch,
+  killOthers: 'failure',
+  prefixColors: ['grey']
+});
 result.catch(error => {
   /** @type {import('concurrently').CloseEvent[]} */
   const events = Array.isArray(error) ? error : [];

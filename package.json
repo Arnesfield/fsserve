@@ -31,7 +31,6 @@
   "scripts": {
     "prebuild:api": "rimraf lib",
     "build:api": "node scripts/build",
-    "check": "concurrently -r --kill-others-on-fail npm:lint:strict \"tsc --noEmit\"",
     "lint": "eslint . --ext .js,.ts",
     "lint:fix": "npm run lint -- --fix",
     "lint:strict": "npm run lint -- --max-warnings 0",
@@ -48,7 +47,6 @@
   "devDependencies": {
     "@rollup/plugin-eslint": "^9.0.1",
     "@rollup/plugin-json": "^5.0.2",
-    "@rollup/plugin-typescript": "^10.0.1",
     "@types/chai": "^4.3.4",
     "@types/http-errors": "^2.0.1",
     "@types/mocha": "^10.0.1",
