@@ -1,5 +1,6 @@
 import type { JSONSchemaType } from 'ajv';
 import { FastifySchema, preHandlerHookHandler } from 'fastify';
+import { FsError } from '../core/error';
 import { Operation } from '../types/operation.types';
 import { FsServePluginCallback } from '../types/plugin.types';
 
@@ -13,12 +14,26 @@ interface GetDownloadSchema extends FastifySchema {
   Querystring: { paths: string[] };
 }
 
-export const fileRoute: FsServePluginCallback = (fastify, options) => {
-  const { fsserve, validator } = options.ctx;
+export const fileRoute: FsServePluginCallback = (fastify, opts) => {
+  const { fsserve, options } = opts.ctx;
 
-  const preHandle = (...operations: Operation[]): preHandlerHookHandler => {
-    return (_response, _reply, done) => done(validator.guard(...operations));
-  };
+  // TODO: improve this somehow
+  function guard(...operations: Operation[]) {
+    const allOperations = options.operations;
+    const valid =
+      !allOperations || operations.every(operation => allOperations[operation]);
+    if (!valid) {
+      return new FsError(403, 'Not authorized to perform this action.');
+    }
+  }
+
+  function preHandle(...operations: Operation[]): preHandlerHookHandler {
+    return (_response, _reply, done) => done(guard(...operations));
+  }
+
+  const downloadGuard = preHandle(Operation.Download);
+
+  // routes
 
   fastify.get<GetRootSchema>('/', {
     schema: {
@@ -28,7 +43,7 @@ export const fileRoute: FsServePluginCallback = (fastify, options) => {
       }
     },
     handler(request) {
-      return fsserve.get(request.query.path);
+      return fsserve.browse(request.query.path);
     }
   });
 
@@ -40,7 +55,7 @@ export const fileRoute: FsServePluginCallback = (fastify, options) => {
         properties: { path: { type: 'string' } }
       }
     },
-    preHandler: preHandle(Operation.Download),
+    preHandler: downloadGuard,
     async handler(request, reply) {
       const { file, stream } = await fsserve.file(request.query.path);
       const filename = JSON.stringify(file.name);
@@ -62,7 +77,7 @@ export const fileRoute: FsServePluginCallback = (fastify, options) => {
         }
       }
     },
-    preHandler: preHandle(Operation.Download),
+    preHandler: downloadGuard,
     async handler(request, reply) {
       const { file, stream } = await fsserve.files(request.query.paths);
       const filename = JSON.stringify(file.name);

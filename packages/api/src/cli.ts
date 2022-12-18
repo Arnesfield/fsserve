@@ -1,9 +1,9 @@
 import chalk from 'chalk-template';
 import { Option, program } from 'commander';
 import path from 'path';
-import { serve } from './server';
+import { description, name, version } from '../../../package.json';
 import { ServeOptions } from './types/serve.types';
-import { pkg } from './utils/pkg';
+import { serve } from './server';
 
 process.on('SIGINT', () => {
   console.log(chalk`{red Stopped.}`);
@@ -11,8 +11,8 @@ process.on('SIGINT', () => {
 });
 
 program
-  .name(pkg.name)
-  .description(pkg.description)
+  .name(name)
+  .description(description)
   .argument('[dir]', 'directory to serve', '.')
   .addOption(
     new Option('-p, --port <port>', 'server port')
@@ -25,7 +25,7 @@ program
       'allow DRUM operations: Download, Remove, Upload, Modify'
     ).default('d')
   )
-  .version(`v${pkg.version}`, '-v, --version');
+  .version(`v${version}`, '-v, --version');
 
 interface ProgramOptions {
   port: number;

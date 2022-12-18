@@ -1,4 +1,4 @@
-import { FsServeOptions } from './fsserve.types';
+import { FsServeOptions } from './core.types';
 
 export interface ServeOptions extends FsServeOptions {
   port?: number;

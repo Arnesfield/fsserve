@@ -28,16 +28,8 @@ export interface FsFileCollection extends Omit<FsFile, 'size'> {
 export interface FsStreamCollection {
   file: FsFileCollection;
   paths: string[];
-  basePath: string;
   virtual: boolean;
   stream(): NodeJS.ReadableStream;
-}
-
-export interface FsServe {
-  // TODO: rename to browse()
-  get(path?: string): Promise<FsObject[]>;
-  file(path: string): Promise<FsStreamObject>;
-  files(paths: string[]): Promise<FsStreamCollection>;
 }
 
 export interface FsServeOptions {
