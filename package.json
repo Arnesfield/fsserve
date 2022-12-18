@@ -43,7 +43,6 @@
     "commander": "^9.4.1",
     "common-path-prefix": "^3.0.0",
     "fastify": "^4.10.2",
-    "http-errors": "^2.0.0",
     "jszip": "^3.10.1",
     "mime-types": "^2.1.35"
   },
@@ -51,7 +50,6 @@
     "@rollup/plugin-eslint": "^9.0.1",
     "@rollup/plugin-json": "^5.0.2",
     "@types/chai": "^4.3.4",
-    "@types/http-errors": "^2.0.1",
     "@types/mime-types": "^2.1.1",
     "@types/mocha": "^10.0.1",
     "@types/node": "^18.11.16",
