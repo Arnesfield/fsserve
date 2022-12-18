@@ -1,8 +1,8 @@
 import { Stats } from 'fs';
 import fs from 'fs/promises';
-import createHttpError from 'http-errors';
 import path from 'path';
 import { FsObject } from '../types/fsserve.types';
+import { FsError } from './error';
 
 export interface FilePathsInfo {
   size: number;
@@ -19,13 +19,12 @@ export interface SafeFs {
 }
 
 // TODO: convert to class
-// TODO: use custom error
 export function createSafeFs(rootDir: string): SafeFs {
   return {
     resolve(...paths) {
       const resolvedPath = path.resolve(...paths);
       if (!resolvedPath.startsWith(rootDir)) {
-        throw createHttpError(
+        throw new FsError(
           403,
           'Cannot access beyond current working directory.'
         );
@@ -43,14 +42,14 @@ export function createSafeFs(rootDir: string): SafeFs {
           error instanceof Error &&
           (error as NodeJS.ErrnoException).code === 'ENOENT';
         throw isNotFound
-          ? createHttpError(404, 'File or directory not found.')
-          : createHttpError(500);
+          ? new FsError(404, 'File or directory not found.')
+          : new FsError(500, 'Internal Server Error');
       }
     },
     async statCheck(kind, value) {
       const dirStat = await this.stat(value);
       if ((kind === 'file') === dirStat.isDirectory()) {
-        throw createHttpError(400, `Not a ${kind}.`);
+        throw new FsError(400, `Not a ${kind}.`);
       }
       return dirStat;
     },

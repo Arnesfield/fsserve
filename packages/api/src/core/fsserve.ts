@@ -1,6 +1,5 @@
 import commonPathPrefix from 'common-path-prefix';
 import fs from 'fs';
-import createHttpError from 'http-errors';
 import path from 'path';
 import {
   FsDirectory,
@@ -9,6 +8,7 @@ import {
   FsServeOptions
 } from '../types/fsserve.types';
 import { zip } from '../utils/zip';
+import { FsError } from './error';
 import { createFsObject } from './file';
 import { createSafeFs } from './safeFs';
 
@@ -45,7 +45,7 @@ export function fsserve(options: FsServeOptions = {}): FsServe {
 
     async files(paths) {
       if (paths.length === 0) {
-        throw createHttpError(422, 'No file paths were provided.');
+        throw new FsError(422, 'No file paths were provided.');
       }
       const single = paths.length === 1;
       const filePath = single ? safeFs.relative(paths[0]) : '';
