@@ -1,14 +1,19 @@
 import { Stats } from 'fs';
 import { lookup } from 'mime-types';
 import { basename } from 'path';
-import { FileItem } from '../types/fsserve.types';
+import { FsObject } from '../types/fsserve.types';
 
-export function createFileItem(filePath: string, stats: Stats): FileItem {
-  return {
+export function createFsObject<T extends FsObject = FsObject>(
+  filePath: string,
+  stats: Stats
+): T {
+  const isFile = stats.isFile();
+  return <T>{
     name: basename(filePath),
     path: filePath,
-    type: lookup(filePath) || 'application/octet-stream',
-    size: stats.size,
-    kind: stats.isFile() ? 'file' : 'directory'
+    kind: isFile ? 'file' : 'directory',
+    type: isFile ? lookup(filePath) || 'application/octet-stream' : null,
+    // can't trust 4096 folder size
+    size: isFile ? stats.size : null
   };
 }

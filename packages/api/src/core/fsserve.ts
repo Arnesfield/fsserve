@@ -2,10 +2,14 @@ import commonPathPrefix from 'common-path-prefix';
 import fs from 'fs';
 import createHttpError from 'http-errors';
 import path from 'path';
-import { Readable } from 'stream';
-import { FsServe, FsServeOptions } from '../types/fsserve.types';
+import {
+  FsDirectory,
+  FsFile,
+  FsServe,
+  FsServeOptions
+} from '../types/fsserve.types';
 import { zip } from '../utils/zip';
-import { createFileItem } from './file';
+import { createFsObject } from './file';
 import { createSafeFs } from './safeFs';
 
 // TODO: convert to internal class, keep fsserve() api
@@ -20,7 +24,12 @@ export function fsserve(options: FsServeOptions = {}): FsServe {
       const promises = names.map(async name => {
         const filePath = safeFs.relative(dir, name);
         const stats = await safeFs.stat(filePath);
-        return createFileItem(filePath, stats);
+        const object = createFsObject(filePath, stats);
+        if (stats.isDirectory()) {
+          const found = await safeFs.getFilePaths(filePath);
+          object.size = found.size;
+        }
+        return object;
       });
       return Promise.all(promises);
     },
@@ -29,8 +38,8 @@ export function fsserve(options: FsServeOptions = {}): FsServe {
       const filePath = safeFs.relative(pathValue);
       const stats = await safeFs.statCheck('file', filePath);
       return {
-        file: createFileItem(filePath, stats),
-        stream: fs.createReadStream(filePath)
+        file: createFsObject<FsFile>(filePath, stats),
+        stream: () => fs.createReadStream(filePath)
       };
     },
 
@@ -38,51 +47,43 @@ export function fsserve(options: FsServeOptions = {}): FsServe {
       if (paths.length === 0) {
         throw createHttpError(422, 'No file paths were provided.');
       }
-      let zipOpts: {
-        name: string; // file.name
-        path: string; // file.path
-        basePath: string; // current directory
-        paths: string[]; // paths to include in download
-      };
-      if (paths.length === 1) {
-        const filePath = safeFs.relative(paths[0]);
-        const stats = await safeFs.stat(filePath);
-        if (stats.isFile()) {
-          return {
-            file: createFileItem(filePath, stats),
-            stream: fs.createReadStream(filePath)
-          };
-        }
-        zipOpts = {
-          name: path.basename(filePath),
-          path: path.dirname(filePath),
+      const single = paths.length === 1;
+      const filePath = single ? safeFs.relative(paths[0]) : '';
+      const stats = single ? await safeFs.stat(filePath) : undefined;
+      const virtual = !stats;
+      if (stats && stats.isFile()) {
+        return {
+          virtual,
           basePath: filePath,
-          paths: await safeFs.getFilePaths(filePath)
-        };
-      } else {
-        const paths2d = await Promise.all(
-          paths.map(path => safeFs.getFilePaths(safeFs.resolve(path)))
-        );
-        const allPaths = paths2d.flat();
-        const commonPath = safeFs.relative(commonPathPrefix(allPaths)) || '.';
-        zipOpts = {
-          name: 'download',
-          path: commonPath,
-          basePath: commonPath,
-          paths: allPaths
+          paths: [filePath],
+          file: createFsObject<FsFile>(filePath, stats),
+          stream: () => fs.createReadStream(filePath)
         };
       }
-      // zip contents
-      const buffer = await zip(zipOpts.basePath, zipOpts.paths);
+
+      const found = await safeFs.getFilePaths(...paths);
+      const basePath = stats
+        ? filePath
+        : safeFs.relative(commonPathPrefix(found.paths)) || '.';
+      const zipOpts = stats
+        ? createFsObject<FsDirectory>(filePath, stats)
+        : {
+            size: null,
+            path: basePath,
+            name: 'download ' + new Date().toLocaleString().replaceAll('/', '-')
+          };
       return {
-        stream: Readable.from(buffer),
+        virtual,
+        basePath,
+        paths: found.paths.map(pathValue => path.relative(basePath, pathValue)),
         file: {
           name: zipOpts.name + '.zip',
           path: zipOpts.path,
+          kind: 'file',
           type: 'application/zip',
-          size: buffer.byteLength,
-          kind: 'file'
-        }
+          size: zipOpts.size
+        },
+        stream: () => zip(basePath, found.paths)
       };
     }
   };

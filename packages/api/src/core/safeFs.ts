@@ -2,14 +2,20 @@ import { Stats } from 'fs';
 import fs from 'fs/promises';
 import createHttpError from 'http-errors';
 import path from 'path';
-import { FileItem } from '../types/fsserve.types';
+import { FsObject } from '../types/fsserve.types';
+
+export interface FilePathsInfo {
+  size: number;
+  paths: string[];
+  stats: Record<string, Stats>;
+}
 
 export interface SafeFs {
   resolve(...paths: string[]): string;
   relative(...paths: string[]): string;
   stat(value: string): Promise<Stats>;
-  statCheck(kind: FileItem['kind'], value: string): Promise<Stats>;
-  getFilePaths(dir: string): Promise<string[]>;
+  statCheck(kind: FsObject['kind'], value: string): Promise<Stats>;
+  getFilePaths(...dirs: string[]): Promise<FilePathsInfo>;
 }
 
 // TODO: convert to class
@@ -51,16 +57,33 @@ export function createSafeFs(rootDir: string): SafeFs {
 
     // NOTE: taken from https://github.com/Stuk/jszip/issues/386#issuecomment-1283099454
 
-    async getFilePaths(dir: string) {
-      const stats = await this.stat(dir);
-      if (stats.isFile()) {
-        return [dir];
-      }
-      const files = await fs.readdir(dir);
-      const paths = await Promise.all(
-        files.map(file => this.getFilePaths(this.resolve(dir, file)))
-      );
-      return paths.flat();
+    // TODO: move to separate file
+    async getFilePaths(...dirs) {
+      const info: FilePathsInfo = { size: 0, paths: [], stats: {} };
+      const recursive = (dirs: string[]): Promise<void[]> => {
+        const promises = dirs.map(async dir => {
+          const stats = await this.stat(dir);
+          if (stats.isFile()) {
+            info.paths.push(dir);
+            info.size += stats.size;
+            info.stats[dir] = stats;
+            return;
+          }
+          const files = await fs.readdir(dir);
+          const filePaths: string[] = [];
+          for (const file of files) {
+            const filePath = this.resolve(dir, file);
+            // add if not yet included
+            if (!info.stats[filePath]) {
+              filePaths.push(filePath);
+            }
+          }
+          await recursive(filePaths);
+        });
+        return Promise.all(promises);
+      };
+      await recursive(dirs.map(dir => this.resolve(dir)));
+      return info;
     }
   };
 }

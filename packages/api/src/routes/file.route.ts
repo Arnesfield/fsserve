@@ -1,5 +1,5 @@
 import type { JSONSchemaType } from 'ajv';
-import { FastifySchema } from 'fastify';
+import { FastifySchema, preHandlerHookHandler } from 'fastify';
 import { Operation } from '../types/operation.types';
 import { FsServePluginCallback } from '../types/plugin.types';
 
@@ -15,6 +15,10 @@ interface GetDownloadSchema extends FastifySchema {
 
 export const fileRoute: FsServePluginCallback = (fastify, options) => {
   const { fsserve, validator } = options.ctx;
+
+  const preHandle = (...operations: Operation[]): preHandlerHookHandler => {
+    return (_response, _reply, done) => done(validator.guard(...operations));
+  };
 
   fastify.get<GetRootSchema>('/', {
     schema: {
@@ -36,9 +40,7 @@ export const fileRoute: FsServePluginCallback = (fastify, options) => {
         properties: { path: { type: 'string' } }
       }
     },
-    async preHandler() {
-      validator.guard(Operation.Download);
-    },
+    preHandler: preHandle(Operation.Download),
     async handler(request, reply) {
       const { file, stream } = await fsserve.file(request.query.path);
       const filename = JSON.stringify(file.name);
@@ -46,7 +48,7 @@ export const fileRoute: FsServePluginCallback = (fastify, options) => {
         .type(file.type)
         .header('Content-Length', file.size)
         .header('Content-Disposition', `filename=${filename}`)
-        .send(stream);
+        .send(stream());
     }
   });
 
@@ -60,17 +62,17 @@ export const fileRoute: FsServePluginCallback = (fastify, options) => {
         }
       }
     },
-    async preHandler() {
-      validator.guard(Operation.Download);
-    },
+    preHandler: preHandle(Operation.Download),
     async handler(request, reply) {
       const { file, stream } = await fsserve.files(request.query.paths);
       const filename = JSON.stringify(file.name);
+      if (file.size !== null) {
+        reply.header('Content-Length', file.size);
+      }
       return reply
         .type(file.type)
-        .header('Content-Length', file.size)
         .header('Content-Disposition', `attachment; filename=${filename}`)
-        .send(stream);
+        .send(stream());
     }
   });
   return fastify;
