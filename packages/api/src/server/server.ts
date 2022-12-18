@@ -1,8 +1,8 @@
 import Fastify, { FastifyInstance } from 'fastify';
 import { fsserve } from '../core/fsserve';
+import { register } from '../routes/register';
 import { ServeOptions } from '../types/serve.types';
 import { getHttpsOptions } from './options';
-import { register } from './register';
 
 export async function createServer(
   options: ServeOptions
