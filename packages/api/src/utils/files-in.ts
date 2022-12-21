@@ -8,12 +8,9 @@ export interface FilesResult {
   data: Record<string, { path: string; stats: fs.Stats }>;
 }
 
-export async function filesIn(
-  dirs: string[],
-  cwd = process.cwd()
-): Promise<FilesResult> {
+export async function filesIn(dirs: string[]): Promise<FilesResult> {
   const result: FilesResult = { size: 0, paths: [], data: {} };
-  const recursive = (dirs: string[]): Promise<void[]> => {
+  function recursive(dirs: string[]): Promise<void[]> {
     const promises = dirs.map(async dir => {
       const stats = await fsw.stat(dir);
       if (stats.isFile()) {
@@ -34,7 +31,7 @@ export async function filesIn(
       await recursive(filePaths);
     });
     return Promise.all(promises);
-  };
-  await recursive(dirs.map(dir => fsw.resolve(cwd, dir).absolute));
+  }
+  await recursive(dirs);
   return result;
 }

@@ -8,9 +8,11 @@ import {
   FsStreamCollection,
   FsStreamObject
 } from '../types/core.types';
-import { filesIn } from '../utils/filesIn';
+import { createDate } from '../utils/date';
+import { filesIn } from '../utils/files-in';
 import * as fsw from '../utils/fsw';
-import { zip } from '../utils/zip';
+import { simplifyPaths } from '../utils/simplify-paths';
+import { zip, ZipItem } from '../utils/zip';
 import { FsError } from './error';
 import { createFsObject } from './file';
 
@@ -28,16 +30,15 @@ class FsServeClass {
   }
 
   async browse(path?: string): Promise<FsObject[]> {
-    const dirPath = fsw.resolve(this.rootDir, path || '');
-    await fsw.statCheck('directory', dirPath.absolute);
-    const names = await fs.promises.readdir(dirPath.absolute);
+    const dirPath = fsw.absolute(this.rootDir, path || '');
+    await fsw.statCheck('directory', dirPath);
+    const names = await fs.promises.readdir(dirPath);
     const promises = names.map(async name => {
-      const filePath = fsw.resolve(this.rootDir, dirPath.absolute, name);
+      const filePath = fsw.resolve(this.rootDir, dirPath, name);
       const stats = await fsw.stat(filePath.absolute);
       const object = createFsObject(filePath.relative, stats);
       if (stats.isDirectory()) {
-        const found = await filesIn([filePath.absolute], this.rootDir);
-        object.size = found.size;
+        object.size = (await filesIn([filePath.absolute])).size;
       }
       return object;
     });
@@ -57,11 +58,23 @@ class FsServeClass {
     if (paths.length === 0) {
       throw new FsError(422, 'No file paths were provided.');
     }
-    const single = paths.length === 1;
-    const filePath = single ? fsw.resolve(this.rootDir, paths[0]).relative : '';
-    const stats = single ? await fsw.stat(filePath) : undefined;
-    const virtual = !stats;
-    if (stats && stats.isFile()) {
+    // simplify and get absolute target paths
+    const allPaths = simplifyPaths(
+      paths.map(value => fsw.absolute(this.rootDir, value))
+    );
+    const targets = await Promise.all(
+      allPaths.map(async absolute => {
+        return { absolute, stats: await fsw.stat(absolute) };
+      })
+    );
+    // check for single path and stream file directly
+    const single = allPaths.length === 1;
+    const virtual = !single;
+    const filePath = single
+      ? path.relative(this.rootDir, targets[0].absolute)
+      : '';
+    const stats = targets[0].stats;
+    if (single && stats.isFile()) {
       return {
         virtual,
         paths: [filePath],
@@ -69,17 +82,21 @@ class FsServeClass {
         stream: () => fs.createReadStream(filePath)
       };
     }
-    // zip contents for folder / multiple paths
-    const foundPaths = (await filesIn(paths, this.rootDir)).paths;
-    const basePath = stats
+    // zip contents for directory / multiple paths
+    const basePath = single
       ? filePath
-      : fsw.resolve(this.rootDir, commonPathPrefix(foundPaths)).relative || '.';
-    const name = stats
-      ? path.basename(filePath)
-      : 'download ' + new Date().toLocaleString().replaceAll('/', '-');
+      : path.relative(this.rootDir, commonPathPrefix(allPaths)) || '.';
+    const name = single ? path.basename(filePath) : 'download-' + createDate();
+    // prepare items to zip
+    const relativePaths: string[] = [];
+    const zipItems = targets.map((target): ZipItem => {
+      const relative = path.relative(basePath, target.absolute);
+      relativePaths.push(relative);
+      return { ...target, relative };
+    });
     return {
       virtual,
-      paths: foundPaths.map(value => path.relative(basePath, value)),
+      paths: relativePaths,
       file: {
         name: name + '.zip',
         path: basePath,
@@ -87,7 +104,7 @@ class FsServeClass {
         type: 'application/zip',
         size: null
       },
-      stream: () => zip(basePath, foundPaths)
+      stream: () => zip(zipItems)
     };
   }
 }

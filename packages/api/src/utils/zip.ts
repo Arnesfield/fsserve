@@ -1,25 +1,27 @@
-import fs from 'fs';
-import JSZip from 'jszip';
-import path from 'path';
+import archiver from 'archiver';
+import { Stats } from 'fs';
+import { PassThrough } from 'stream';
 
-// NOTE: taken from https://github.com/Stuk/jszip/issues/386#issuecomment-1283099454
+export interface ZipItem {
+  absolute: string;
+  relative: string;
+  stats: Stats;
+}
 
-// assume filePaths are validated
-export function zip(cwd: string, filePaths: string[]): NodeJS.ReadableStream {
-  const zip = new JSZip();
-  for (const filePath of filePaths) {
-    // create folder trees manually
-    const dirName = path.dirname(path.relative(cwd, filePath));
-    const dirNames = dirName === '.' ? [] : dirName.split(path.sep);
-    const zipFolder = dirNames.reduce(
-      (zipFolder, dirName) => zipFolder.folder(dirName) || zip,
-      zip
-    );
-    zipFolder.file(path.basename(filePath), fs.createReadStream(filePath));
+export function zip(items: ZipItem[]): NodeJS.ReadableStream {
+  const archive = archiver('zip', { zlib: { level: 9 } });
+  for (const item of items) {
+    const { stats, absolute, relative } = item;
+    if (stats.isFile()) {
+      archive.file(absolute, { name: relative, stats });
+    } else if (stats.isDirectory()) {
+      archive.directory(absolute, relative, { stats });
+    } else if (stats.isSymbolicLink()) {
+      archive.symlink(absolute, relative, stats.mode);
+    }
   }
-  return zip.generateNodeStream({
-    streamFiles: true,
-    compression: 'DEFLATE',
-    compressionOptions: { level: 9 }
-  });
+  const passThrough = new PassThrough();
+  archive.pipe(passThrough);
+  archive.finalize();
+  return passThrough;
 }

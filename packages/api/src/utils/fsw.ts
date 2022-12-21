@@ -5,11 +5,11 @@ import { FsObject } from '../types/core.types';
 
 // fs wrapped (fsw) with helpers and checks
 
-export function resolve(
+export function absolute(
   from: string,
   value: string,
   ...paths: string[]
-): { absolute: string; relative: string } {
+): string {
   const absolute = path.resolve(value, ...paths);
   if (!absolute.startsWith(from)) {
     throw new FsError(
@@ -18,7 +18,16 @@ export function resolve(
       absolute
     );
   }
-  return { absolute, relative: path.relative(from, absolute) };
+  return absolute;
+}
+
+export function resolve(
+  from: string,
+  value: string,
+  ...paths: string[]
+): { absolute: string; relative: string } {
+  const abs = absolute(from, value, ...paths);
+  return { absolute: abs, relative: path.relative(from, abs) };
 }
 
 export async function stat(value: string): Promise<fs.Stats> {
