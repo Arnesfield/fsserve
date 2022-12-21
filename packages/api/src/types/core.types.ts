@@ -34,11 +34,4 @@ export interface FsStreamCollection {
 
 export interface FsServeOptions {
   rootDir?: string;
-  // TODO: move to ServeOptions
-  operations?: {
-    download?: boolean;
-    remove?: boolean;
-    upload?: boolean;
-    modify?: boolean;
-  };
 }
