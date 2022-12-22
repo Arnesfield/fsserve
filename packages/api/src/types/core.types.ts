@@ -1,3 +1,5 @@
+import { Stats } from 'fs';
+
 export interface FsFile {
   name: string;
   path: string;
@@ -14,10 +16,20 @@ export interface FsDirectory {
   size: number | null;
 }
 
-export type FsObject = FsFile | FsDirectory;
+export interface StatsMap {
+  [Path: string]: Stats;
+}
+
+export interface FsObject<
+  File extends FsFile | FsDirectory = FsFile | FsDirectory
+> {
+  file: File;
+  stats: StatsMap;
+}
 
 export interface FsStreamObject {
   file: FsFile;
+  stats: StatsMap;
   stream(): NodeJS.ReadableStream;
 }
 
@@ -27,7 +39,7 @@ export interface FsFileCollection extends Omit<FsFile, 'size'> {
 
 export interface FsStreamCollection {
   file: FsFileCollection;
-  paths: string[];
+  stats: StatsMap;
   virtual: boolean;
   stream(): NodeJS.ReadableStream;
 }

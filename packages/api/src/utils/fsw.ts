@@ -44,7 +44,7 @@ export async function stat(value: string): Promise<fs.Stats> {
 }
 
 export async function statCheck(
-  kind: FsObject['kind'],
+  kind: FsObject['file']['kind'],
   value: string
 ): Promise<fs.Stats> {
   const stats = await stat(value);

@@ -58,7 +58,10 @@ class FileRoutes {
           properties: { path: { type: 'string' } }
         }
       },
-      handler: request => this.fsserve.browse(request.query.path)
+      handler: async request => {
+        const result = await this.fsserve.browse(request.query.path);
+        return result.map(object => object.file);
+      }
     });
   }
 

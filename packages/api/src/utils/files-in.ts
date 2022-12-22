@@ -1,31 +1,33 @@
 import fs from 'fs';
 import path from 'path';
+import { StatsMap } from '../types/core.types';
 import * as fsw from './fsw';
 
 export interface FilesResult {
   size: number;
-  paths: string[];
-  data: Record<string, { path: string; stats: fs.Stats }>;
+  stats: StatsMap;
 }
 
-export async function filesIn(dirs: string[]): Promise<FilesResult> {
-  const result: FilesResult = { size: 0, paths: [], data: {} };
+export async function filesIn(
+  dirs: string[],
+  rootDir: string
+): Promise<FilesResult> {
+  const result: FilesResult = { size: 0, stats: {} };
   function recursive(dirs: string[]): Promise<void[]> {
     const promises = dirs.map(async dir => {
       const stats = await fsw.stat(dir);
       if (stats.isFile()) {
-        result.paths.push(dir);
         result.size += stats.size;
-        result.data[dir] = { path: dir, stats };
+        result.stats[path.relative(rootDir, dir)] = stats;
         return;
       }
       const files = await fs.promises.readdir(dir);
       const filePaths: string[] = [];
       for (const file of files) {
-        const filePath = path.resolve(dir, file);
+        const filePath = fsw.resolve(rootDir, dir, file);
         // add if not yet included
-        if (!result.data[filePath]) {
-          filePaths.push(filePath);
+        if (!result.stats[filePath.relative]) {
+          filePaths.push(filePath.absolute);
         }
       }
       await recursive(filePaths);
