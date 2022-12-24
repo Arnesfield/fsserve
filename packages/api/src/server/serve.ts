@@ -17,7 +17,7 @@ export async function serve(options: ServeOptions = {}): Promise<Server> {
     throw new Error('Port should be a number >= 0 and < 65536.');
   }
   const fastify = await createServer(options);
-  fastify.listen({ port }, (error, address) => {
+  fastify.listen({ port, host: '0.0.0.0' }, (error, address) => {
     if (error) {
       console.error('%s:', error.name, error.message);
       process.exitCode = 1;
