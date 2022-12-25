@@ -1,5 +1,6 @@
 import commonPathPrefix from 'common-path-prefix';
 import fs from 'fs';
+import getFolderSize from 'get-folder-size';
 import path from 'path';
 import {
   FsFile,
@@ -9,7 +10,6 @@ import {
   FsStreamObject
 } from '../types/core.types';
 import { createDate } from '../utils/date';
-import { filesIn } from '../utils/files-in';
 import * as fsw from '../utils/fsw';
 import { simplifyPaths } from '../utils/simplify-paths';
 import { zip, ZipItem } from '../utils/zip';
@@ -38,7 +38,7 @@ class FsServeClass {
       const stats = await fsw.stat(filePath.absolute);
       const object = createFsObject(filePath.relative, stats);
       if (stats.isDirectory()) {
-        object.size = (await filesIn([filePath.absolute])).size;
+        object.size = await getFolderSize.loose(filePath.absolute);
       }
       return object;
     });
