@@ -1,13 +1,13 @@
 import commonPathPrefix from 'common-path-prefix';
 import fs from 'fs';
-import getFolderSize from 'get-folder-size';
 import path from 'path';
 import {
   FsFile,
   FsObject,
   FsServeOptions,
   FsStreamCollection,
-  FsStreamObject
+  FsStreamObject,
+  StatsMap
 } from '../types/core.types';
 import { createDate } from '../utils/date';
 import * as fsw from '../utils/fsw';
@@ -36,11 +36,7 @@ class FsServeClass {
     const promises = names.map(async name => {
       const filePath = fsw.resolve(this.rootDir, dirPath, name);
       const stats = await fsw.stat(filePath.absolute);
-      const object = createFsObject(filePath.relative, stats);
-      if (stats.isDirectory()) {
-        object.size = await getFolderSize.loose(filePath.absolute);
-      }
-      return object;
+      return createFsObject(filePath.relative, stats);
     });
     return Promise.all(promises);
   }
@@ -49,7 +45,7 @@ class FsServeClass {
     const filePath = fsw.resolve(this.rootDir, path);
     const stats = await fsw.statCheck('file', filePath.absolute);
     return {
-      file: createFsObject<FsFile>(filePath.relative, stats),
+      file: await createFsObject(filePath.relative, stats),
       stream: () => fs.createReadStream(filePath.absolute)
     };
   }
@@ -75,10 +71,12 @@ class FsServeClass {
       : '';
     const stats = targets[0].stats;
     if (single && stats.isFile()) {
+      const file = await createFsObject<FsFile>(filePath, stats);
+      delete (file as Partial<FsFile>).stats;
       return {
+        file,
+        stats: { [filePath]: stats },
         virtual,
-        paths: [filePath],
-        file: createFsObject<FsFile>(filePath, stats),
         stream: () => fs.createReadStream(filePath)
       };
     }
@@ -88,15 +86,12 @@ class FsServeClass {
       : path.relative(this.rootDir, commonPathPrefix(allPaths)) || '.';
     const name = single ? path.basename(filePath) : 'download-' + createDate();
     // prepare items to zip
-    const relativePaths: string[] = [];
+    const statsMap: StatsMap = {};
     const zipItems = targets.map((target): ZipItem => {
-      const relative = path.relative(basePath, target.absolute);
-      relativePaths.push(relative);
-      return { ...target, relative };
+      statsMap[path.relative(this.rootDir, target.absolute)] = target.stats;
+      return { ...target, relative: path.relative(basePath, target.absolute) };
     });
     return {
-      virtual,
-      paths: relativePaths,
       file: {
         name: name + '.zip',
         path: basePath,
@@ -104,6 +99,8 @@ class FsServeClass {
         type: 'application/zip',
         size: null
       },
+      stats: statsMap,
+      virtual,
       stream: () => zip(zipItems)
     };
   }
