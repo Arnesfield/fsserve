@@ -7,11 +7,13 @@ import dts from 'rollup-plugin-dts';
 import esbuild from 'rollup-plugin-esbuild';
 import externals from 'rollup-plugin-node-externals';
 import outputSize from 'rollup-plugin-output-size';
-import type Pkg from './package.json';
+import type Pkg from '../../package.json';
 
+const root = '../../';
 const require = createRequire(import.meta.url);
-const pkg: typeof Pkg = require('./package.json');
-const input = 'packages/api/src/index.ts';
+const pkg: typeof Pkg = require(root + 'package.json');
+const input = 'src/index.ts';
+const cli = 'src/cli.ts';
 const WATCH = process.env.ROLLUP_WATCH === 'true';
 const PROD = !WATCH || process.env.NODE_ENV === 'production';
 
@@ -21,9 +23,9 @@ function defineConfig(options: (false | RollupOptions)[]) {
 
 export default defineConfig([
   {
-    input: { index: input, cli: 'packages/api/src/cli.ts' },
+    input: { index: input, cli },
     output: {
-      dir: 'lib',
+      dir: root + 'lib',
       format: 'esm',
       exports: 'named',
       sourcemap: PROD,
@@ -35,7 +37,7 @@ export default defineConfig([
   {
     input,
     output: {
-      file: pkg.main,
+      file: root + pkg.main,
       format: 'cjs',
       exports: 'named',
       sourcemap: PROD
@@ -44,12 +46,17 @@ export default defineConfig([
   },
   {
     input,
-    output: { file: pkg.types, format: 'esm' },
+    output: { file: root + pkg.types, format: 'esm' },
     plugins: [dts(), externals(), outputSize()]
   },
   !PROD && {
-    input,
+    input: { index: input, cli },
     watch: { skipWrite: true },
-    plugins: [eslint(), typescript(), json(), externals()]
+    plugins: [
+      eslint({ overrideConfigFile: '.eslintrc.cjs' }),
+      typescript(),
+      json(),
+      externals()
+    ]
   }
 ]);

@@ -1,4 +1,6 @@
 {
+  "include": ["src/**/*", "rollup.config.ts"],
+  "exclude": ["tmp"],
   "compilerOptions": {
     "module": "ES2020",
     "target": "ES2020",
@@ -12,7 +14,5 @@
     "resolveJsonModule": true,
     "preserveConstEnums": true,
     "moduleResolution": "node"
-  },
-  "include": ["packages/api/src/**/*", "rollup.config.ts"],
-  "exclude": ["node_modules", "dist", "lib", "tmp"]
+  }
 }
