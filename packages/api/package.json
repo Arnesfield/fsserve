@@ -1,0 +1,16 @@
+{
+  "name": "@arnesfield/fsserve-api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "concurrently -r --kill-others-on-fail npm:create npm:lint:strict npm:check",
+    "check": "tsc --skipLibCheck",
+    "create": "rimraf ../../lib && rollup -c rollup.config.ts --configPlugin esbuild",
+    "lint": "eslint . --ext .js,.ts",
+    "lint:strict": "npm run lint -- --max-warnings 0",
+    "test": "concurrently -r --kill-others-on-fail npm:test:mocha npm:lint:strict npm:check",
+    "test:mocha": "mocha -r tsx **/*.spec.ts",
+    "test:watch": "npm run test:mocha -- --w --watch-files src,test",
+    "watch": "npm run create -- -w --no-watch.clearScreen"
+  }
+}

@@ -33,16 +33,7 @@
   "workspaces": [
     "packages/*"
   ],
-  "scripts": {
-    "prebuild:api": "rimraf lib",
-    "build:api": "rollup -c rollup.config.ts --configPlugin esbuild",
-    "lint": "eslint . --ext .js,.ts",
-    "lint:strict": "npm run lint -- --max-warnings 0",
-    "test": "concurrently -r --kill-others-on-fail npm:test:mocha npm:lint:strict \"tsc --skipLibCheck\"",
-    "test:mocha": "mocha -r tsx **/*.spec.ts",
-    "test:watch": "npm run test:mocha -- --watch --watch-files src,test",
-    "watch:api": "npm run build:api -- -w --no-watch.clearScreen"
-  },
+  "scripts": {},
   "dependencies": {
     "archiver": "^5.3.1",
     "chalk-template": "^0.5.0",
