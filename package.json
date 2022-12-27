@@ -43,7 +43,8 @@
     "get-folder-size": "^4.0.0",
     "mime-types": "^2.1.35",
     "vue": "^3.2.45",
-    "vue-router": "^4.1.6"
+    "vue-router": "^4.1.6",
+    "vuetify": "^3.0.6"
   },
   "devDependencies": {
     "@rollup/plugin-eslint": "^9.0.1",
