@@ -27,8 +27,8 @@ export default defineConfig([
       format: 'esm',
       exports: 'named',
       sourcemap: PROD,
-      entryFileNames: '[name].mjs',
-      chunkFileNames: 'shared/[name].mjs'
+      chunkFileNames: 'core.mjs',
+      entryFileNames: '[name].mjs'
     },
     plugins: [esbuild(), json(), externals(), outputSize()]
   },
