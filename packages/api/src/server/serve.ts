@@ -16,7 +16,8 @@ export async function serve(options: ServeOptions = {}): Promise<Server> {
   if (typeof port === 'undefined') {
     throw new Error('Port should be a number >= 0 and < 65536.');
   }
-  const fastify = await createServer(options);
+  const addresses = getAddresses();
+  const fastify = await createServer(options, addresses);
   const address = await fastify.listen({ port, host: '0.0.0.0' });
   const target = path.relative('', path.resolve(options.rootDir || '')) || '.';
   console.log(chalk`{yellow Serving}     {cyan %s/}`, target);
@@ -39,7 +40,7 @@ export async function serve(options: ServeOptions = {}): Promise<Server> {
   const url = new URL(address);
   const addressesLabel = 'Addresses';
   const spaces = ' '.repeat(addressesLabel.length + 1);
-  getAddresses().forEach((address, index) => {
+  addresses.forEach((address, index) => {
     url.hostname = address;
     const label = index > 0 ? spaces : chalk`{yellow ${addressesLabel}} `;
     console.log(chalk`%s  %s`, label, url.toString());

@@ -29,7 +29,7 @@ export const fileRoutes: FsServePluginCallback = (fastify, opts, done) => {
   route.root(fastify);
   // download only
   fastify.register((instance, _opts, done) => {
-    instance.addHook('onRequest', (_response, _reply, done) => {
+    instance.addHook('onRequest', (_request, _reply, done) => {
       done(guard(ctx.options, Operation.Download));
     });
     route.view(instance);

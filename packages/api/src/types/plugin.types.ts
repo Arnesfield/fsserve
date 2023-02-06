@@ -5,7 +5,7 @@ import { ServeOptions } from './serve.types';
 // NOTE: internal
 
 export interface FsServePluginOptions {
-  ctx: { fsserve: FsServe; options: ServeOptions };
+  ctx: { addresses: string[]; fsserve: FsServe; options: ServeOptions };
 }
 
 export type FsServePluginCallback = FastifyPluginCallback<FsServePluginOptions>;

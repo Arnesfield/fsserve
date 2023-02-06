@@ -5,9 +5,12 @@ import { ServeOptions } from '../types/serve.types';
 import { getHttpsOptions } from './options';
 
 export async function createServer(
-  options: ServeOptions
+  options: ServeOptions,
+  addresses: string[]
 ): Promise<FastifyInstance> {
   const fastify = Fastify({ https: await getHttpsOptions(options) });
-  fastify.register(register, { ctx: { options, fsserve: fsserve(options) } });
+  fastify.register(register, {
+    ctx: { addresses, options, fsserve: fsserve(options) }
+  });
   return fastify;
 }
