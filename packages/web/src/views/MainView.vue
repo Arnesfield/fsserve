@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import saveAs from 'file-saver';
 import qs from 'qs';
-import { computed, reactive, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { useRoute, type RouteLocationRaw } from 'vue-router';
 import { api, config } from '../api/api';
+import UploadList from '../components/UploadList.vue';
 import type { FsFile, FsObject } from '../types/core.types';
 import { useFetch } from '../utils/fetch';
+import { useUploader, type UploadItem } from '../utils/uploader';
 
 // TODO: separate components?
 
@@ -14,15 +16,21 @@ const path = computed(() => {
   const qp = route.query.path;
   return Array.isArray(qp) ? qp[0] : typeof qp === 'string' ? qp : null;
 });
+const input = ref<HTMLInputElement>();
 const paths = reactive<string[]>([]);
+const state = reactive({ showUploads: false });
 
+const uploader = useUploader('files');
 const reqFiles = useFetch(signal => {
   const params = qs.stringify({ path: path.value });
   return api.get('files', { signal, searchParams: params }).json<FsObject[]>();
 });
-const reqDownload = useFetch(signal => {
-  const params = qs.stringify({ paths }, { arrayFormat: 'repeat' });
-  return api.get('files/download', { signal, searchParams: params }).blob();
+const reqDownload = useFetch({
+  multiple: true,
+  handler(signal) {
+    const params = qs.stringify({ paths }, { arrayFormat: 'repeat' });
+    return api.get('files/download', { signal, searchParams: params }).blob();
+  }
 });
 
 const files = computed(() => {
@@ -58,7 +66,28 @@ watch(route, () => fetchFiles());
 
 async function download() {
   const [, blob] = await reqDownload.fetch();
+  // TODO: file name
   if (blob) saveAs(blob);
+}
+
+function handleUpload() {
+  input.value?.click();
+}
+
+function upload(event: Event) {
+  const fileList = (event.target as HTMLInputElement).files;
+  const files = fileList ? Array.from(fileList) : [];
+  // on upload, show the list
+  if (files.length > 0) {
+    state.showUploads = true;
+  }
+  for (const file of files) {
+    uploader.upload(file);
+  }
+  // clear input field
+  if (input.value) {
+    input.value.value = '';
+  }
 }
 
 function getViewApiPath(item: FsFile) {
@@ -79,6 +108,13 @@ function selectAll() {
   const items = isSelectedAll.value ? [] : files.value.map(file => file.path);
   paths.splice(0, paths.length, ...items);
 }
+
+function removeUploadItem(item: UploadItem) {
+  uploader.remove(item.file);
+  if (uploader.items.length === 0) {
+    state.showUploads = false;
+  }
+}
 </script>
 
 <template>
@@ -93,14 +129,14 @@ function selectAll() {
       </component>
       <h3>Files</h3>
     </header>
-    <div className="content">
+    <div :class="{ content: true, 'show-uploads': state.showUploads }">
       <div v-if="reqFiles.state.isLoading">Loading...</div>
       <template v-if="reqFiles.state.data && reqFiles.state.data.length > 0">
         <div>
           <input
             id="all"
             type="checkbox"
-            className="checkbox"
+            class="checkbox"
             :checked="isSelectedAll"
             :disabled="reqFiles.state.isLoading"
             @change="selectAll"
@@ -109,10 +145,10 @@ function selectAll() {
         </div>
         <ul>
           <li v-for="item of reqFiles.state.data" :key="item.path">
-            <div className="item-content">
+            <div class="item-content">
               <input
                 type="checkbox"
-                className="checkbox"
+                class="checkbox"
                 :id="`item-${item.path}`"
                 :disabled="
                   reqFiles.state.isLoading || item.kind === 'directory'
@@ -138,21 +174,37 @@ function selectAll() {
       </template>
     </div>
 
-    <div class="actions">
-      <button
-        type="button"
-        :disabled="paths.length === 0 || reqDownload.state.isLoading"
-        @click="download"
-      >
-        Download
-      </button>
-      <button
-        type="button"
-        :disabled="reqFiles.state.isLoading"
-        @click="fetchFiles"
-      >
-        Refresh
-      </button>
+    <div :class="{ actions: true, 'show-uploads': state.showUploads }">
+      <div class="actions-container">
+        <input hidden multiple type="file" ref="input" @change="upload" />
+        <button type="button" @click="handleUpload">Upload</button>
+        <button
+          v-if="uploader.items.length > 0"
+          type="button"
+          @click="state.showUploads = !state.showUploads"
+        >
+          {{ state.showUploads ? 'Hide' : 'Show' }} Uploads
+        </button>
+        <button
+          type="button"
+          :disabled="paths.length === 0 || reqDownload.state.isLoading"
+          @click="download"
+        >
+          Download
+        </button>
+        <button
+          type="button"
+          :disabled="reqFiles.state.isLoading"
+          @click="fetchFiles"
+        >
+          Refresh
+        </button>
+      </div>
+      <UploadList
+        v-show="state.showUploads"
+        :items="uploader.items"
+        @remove="removeUploadItem"
+      />
     </div>
   </main>
 </template>
@@ -182,6 +234,10 @@ main {
   padding: 8px;
 }
 
+.content.show-uploads {
+  flex: 0;
+}
+
 .item-content {
   display: flex;
 }
@@ -195,7 +251,17 @@ main {
   border-top: 1px solid black;
 }
 
-.actions > *:not(:last-child) {
+.content,
+.actions {
+  transition: flex 200ms cubic-bezier(0.075, 0.82, 0.165, 1);
+}
+
+.actions.show-uploads {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.actions-container > *:not(:last-child) {
   margin-right: 8px;
 }
 </style>
