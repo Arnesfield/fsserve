@@ -1,4 +1,6 @@
 import fastifyStatic from '@fastify/static';
+import fastifyView from '@fastify/view';
+import ejs from 'ejs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import {
@@ -13,6 +15,10 @@ import { FsServePluginCallback } from '../types/plugin.types';
 import { fileRoutes } from './file.routes';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+interface ApiData {
+  sameOrigin: string;
+}
 
 // entry point for server routes
 
@@ -33,13 +39,19 @@ export const register: FsServePluginCallback = (fastify, options) => {
   });
   // serve web build
   const API_PATH = '/api';
-  fastify.register(fastifyStatic, { root: path.join(__dirname, '../dist') });
+  const root = path.join(__dirname, '../dist');
+  const data = { api: { sameOrigin: 'true' } satisfies ApiData };
+  fastify.register(fastifyStatic, { root });
+  fastify.register(fastifyView, { root, engine: { ejs } });
+  fastify.get('/', (_request, reply) => {
+    reply.status(200).view('index.html', data);
+  });
   fastify.setNotFoundHandler((request, reply) => {
     if (request.url.startsWith(API_PATH)) {
       reply.status(404);
       reply.send(new FsError(404, `Cannot ${request.method} ${request.url}`));
     } else {
-      reply.status(200).sendFile('index.html');
+      reply.status(200).view('index.html', data);
     }
   });
   // serve api
