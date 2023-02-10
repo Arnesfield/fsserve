@@ -12,7 +12,7 @@ import { fileRoutes } from './file.routes';
 
 export const register: FsServePluginCallback = (fastify, options) => {
   // TODO: serve web build
-  const url = new URL('http://localhost:8081');
+  const url = new URL('http://localhost:8082');
   const allowedOrigins = options.ctx.addresses.map(address => {
     url.hostname = address;
     const str = url.toString();
