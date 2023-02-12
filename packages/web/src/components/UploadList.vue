@@ -8,6 +8,11 @@ defineEmits<{ (event: 'remove', item: UploadItem): void }>();
 const uploaded = computed(() => {
   return props.items.filter(item => item.status === 'done');
 });
+
+// NOTE: taken from https://stackoverflow.com/a/18358056/7013346
+function getProgress(progress: number) {
+  return +(Math.round(+`${progress}e+2`) + 'e-2');
+}
 </script>
 
 <template>
@@ -31,7 +36,7 @@ const uploaded = computed(() => {
             {{ item.error ? item.error.message : 'An error occurred.' }}
           </template>
           <template v-else-if="item.status === 'uploading'">
-            {{ item.progress }}%
+            Uploading: {{ getProgress(item.progress) }}%
           </template>
         </span>
       </li>
