@@ -53,3 +53,31 @@ export async function statCheck(
   }
   return stats;
 }
+
+export async function unlink(value: string): Promise<boolean> {
+  try {
+    await statCheck('file', value);
+    await fs.promises.unlink(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function getWritePath(value: string): Promise<string> {
+  let target = value;
+  for (let increment = 0; true; increment++) {
+    if (increment > 0) {
+      const ext = path.extname(value);
+      const n = increment ? `-${increment}` : '';
+      const name = path.basename(value, ext) + n + ext;
+      target = absolute(path.dirname(value), name);
+    }
+    try {
+      await fs.promises.stat(target);
+    } catch {
+      break;
+    }
+  }
+  return target;
+}

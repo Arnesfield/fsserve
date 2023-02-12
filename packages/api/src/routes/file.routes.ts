@@ -1,3 +1,4 @@
+import { MultipartValue } from '@fastify/multipart';
 import type { JSONSchemaType } from 'ajv';
 import { FastifyInstance, RouteGenericInterface } from 'fastify';
 import { FsError } from '../core/error';
@@ -23,23 +24,37 @@ function guard(options: ServeOptions, ...operations: Operation[]) {
   }
 }
 
+function createGuard(options: ServeOptions) {
+  return (fastify: FastifyInstance, ...operations: Operation[]) => {
+    fastify.addHook('onRequest', (_request, _reply, done) => {
+      done(guard(options, ...operations));
+    });
+  };
+}
+
 export const fileRoutes: FsServePluginCallback = (fastify, opts, done) => {
   const { ctx } = opts;
-  const route = new FileRoutes(ctx);
+  const useGuard = createGuard(ctx.options);
+  const route = new FileRoute(ctx);
   route.root(fastify);
   // download only
   fastify.register((instance, _opts, done) => {
-    instance.addHook('onRequest', (_request, _reply, done) => {
-      done(guard(ctx.options, Operation.Download));
-    });
+    useGuard(instance, Operation.Download);
     route.view(instance);
     route.download(instance);
+    done();
+  });
+  // upload
+  route.uploadOptions(fastify);
+  fastify.register((instance, _opts, done) => {
+    useGuard(instance, Operation.Upload);
+    route.upload(instance);
     done();
   });
   done();
 };
 
-class FileRoutes {
+class FileRoute {
   protected readonly fsserve: FsServe;
 
   constructor(ctx: FsServePluginOptions['ctx']) {
@@ -113,6 +128,32 @@ class FileRoutes {
           .header('Content-Disposition', `attachment; filename=${filename}`)
           .send(stream());
       }
+    });
+  }
+
+  // OPTIONS /
+  uploadOptions(fastify: FastifyInstance) {
+    fastify.options('/', (_request, reply) => reply.status(200).send());
+  }
+
+  // POST /
+  upload(fastify: FastifyInstance) {
+    fastify.post('/', async (request, reply) => {
+      const data = await request.file();
+      if (!data) {
+        throw new FsError(400, 'No file to upload.');
+      }
+      const pathField = data.fields.path;
+      const pathPart = (Array.isArray(pathField) ? pathField[0] : pathField) as
+        | MultipartValue<string>
+        | undefined;
+      const path = pathPart?.value;
+      if (path != null && typeof path !== 'string') {
+        throw new FsError(400, 'Not a valid upload path.');
+      }
+      const target = await this.fsserve.upload(data.file, data.filename, path);
+      const file = await this.fsserve.file(target);
+      reply.status(200).send(file.file);
     });
   }
 }

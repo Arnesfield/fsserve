@@ -1,3 +1,4 @@
+import fastifyMultipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
 import fastifyView from '@fastify/view';
 import ejs from 'ejs';
@@ -33,7 +34,8 @@ export const register: FsServePluginCallback = (fastify, options) => {
     const origin = request.headers.origin;
     if (origin && allowedOrigins.includes(origin)) {
       reply.header('Access-Control-Allow-Origin', origin);
-      reply.header('Access-Control-Allow-Methods', 'GET, POST');
+      reply.header('Access-Control-Allow-Headers', 'Content-Type');
+      reply.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     }
     done();
   });
@@ -41,6 +43,7 @@ export const register: FsServePluginCallback = (fastify, options) => {
   const API_PATH = '/api';
   const root = path.join(__dirname, '../dist');
   const data = { api: { sameOrigin: 'true' } satisfies ApiData };
+  fastify.register(fastifyMultipart);
   fastify.register(fastifyStatic, { root });
   fastify.register(fastifyView, { root, engine: { ejs } });
   fastify.get('/', (_request, reply) => {
@@ -48,8 +51,7 @@ export const register: FsServePluginCallback = (fastify, options) => {
   });
   fastify.setNotFoundHandler((request, reply) => {
     if (request.url.startsWith(API_PATH)) {
-      reply.status(404);
-      reply.send(new FsError(404, `Cannot ${request.method} ${request.url}`));
+      throw new FsError(404, `Cannot ${request.method} ${request.url}`);
     } else {
       reply.status(200).view('index.html', data);
     }
