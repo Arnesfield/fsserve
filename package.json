@@ -35,6 +35,7 @@
   ],
   "scripts": {},
   "dependencies": {
+    "@fastify/multipart": "^7.4.0",
     "@fastify/static": "^6.8.0",
     "@fastify/view": "^7.4.1",
     "archiver": "^5.3.1",
