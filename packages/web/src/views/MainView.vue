@@ -82,7 +82,7 @@ function upload(event: Event) {
     state.showUploads = true;
   }
   for (const file of files) {
-    uploader.upload(file);
+    uploader.upload(file, path.value);
   }
   // clear input field
   if (input.value) {

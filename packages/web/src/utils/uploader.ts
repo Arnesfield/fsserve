@@ -70,32 +70,32 @@ export function useUploader(urlOrOptions: string | UploaderOptions) {
     }
   }
 
-  function upload(file: File) {
+  function upload(file: File, path: string | null) {
     const request = new XMLHttpRequest();
     const item = save(file, { request });
     const result = new Promise<boolean>(resolve => {
       let status: 'done' | 'error' | 'aborted' = 'error';
       const done = () => {
-        const updates: Partial<UploadItem> =
-          status === 'done'
-            ? { progress: 100, response: request.response }
-            : status === 'aborted'
-            ? { progress: 0 }
-            : {
-                error: {
-                  statusCode: 500,
-                  error: 'Upload Error',
-                  message: 'An error occurred while uploading the file.'
-                }
-              };
-        updates.status = status;
+        const { response } = request;
+        const updates: Partial<UploadItem> = { status, response };
+        if (status !== 'error') {
+          updates.progress = status === 'done' ? 100 : 0;
+        } else {
+          updates.error = response || {
+            statusCode: 500,
+            error: 'Upload Error',
+            message: 'An error occurred while uploading the file.'
+          };
+        }
         save(file, updates);
         resolve(status === 'done');
       };
 
       const handleErrorEvent = () => (status = 'error');
       const handleAbortEvent = () => (status = 'aborted');
-      const handleLoadEvent = () => (status = 'done');
+      const handleLoadEvent = () => {
+        status = request.status < 300 ? 'done' : 'error';
+      };
       request.addEventListener('error', handleErrorEvent);
       request.upload.addEventListener('error', handleErrorEvent);
       request.addEventListener('timeout', handleErrorEvent);
@@ -120,8 +120,10 @@ export function useUploader(urlOrOptions: string | UploaderOptions) {
         options.method || 'POST',
         `${config.baseUrl}/${options.url}`
       );
-      request.setRequestHeader('Content-Type', file.type);
-      request.send(file);
+      const formData = new FormData();
+      path && formData.append('path', path);
+      formData.append('file', file);
+      request.send(formData);
     });
     return { item, result };
   }
