@@ -1,45 +1,32 @@
 import { MultipartValue } from '@fastify/multipart';
 import type { JSONSchemaType } from 'ajv';
-import { FastifyInstance, RouteGenericInterface } from 'fastify';
+import {
+  FastifyInstance,
+  FastifyPluginCallback,
+  RouteGenericInterface
+} from 'fastify';
 import { FsError } from '../core/error';
 import { FsServe } from '../core/fsserve';
+import { guard } from '../plugins/guard';
 import { Operation } from '../types/operation.types';
-import {
-  FsServePluginCallback,
-  FsServePluginOptions
-} from '../types/plugin.types';
 import { ServeOptions } from '../types/serve.types';
 
-// TODO: maybe move into a different file
-function guard(options: ServeOptions, ...operations: Operation[]) {
-  const allOperations = options.operations;
-  const valid =
-    !allOperations || operations.every(operation => allOperations[operation]);
-  if (!valid) {
-    return new FsError(
-      403,
-      'Not authorized to perform this action.',
-      ...operations
-    );
-  }
+export interface FileRoutesOptions {
+  fsserve: FsServe;
+  options: ServeOptions;
 }
 
-function createGuard(options: ServeOptions) {
-  return (fastify: FastifyInstance, ...operations: Operation[]) => {
-    fastify.addHook('onRequest', (_request, _reply, done) => {
-      done(guard(options, ...operations));
-    });
-  };
-}
-
-export const fileRoutes: FsServePluginCallback = (fastify, opts, done) => {
-  const { ctx } = opts;
-  const useGuard = createGuard(ctx.options);
-  const route = new FileRoute(ctx);
+export const fileRoute: FastifyPluginCallback<FileRoutesOptions> = (
+  fastify,
+  opts,
+  done
+) => {
+  const { options } = opts;
+  const route = new FileRoute(opts.fsserve);
   route.root(fastify);
-  // download only
+  // download
   fastify.register((instance, _opts, done) => {
-    useGuard(instance, Operation.Download);
+    instance.register(guard, { options, operations: Operation.Download });
     route.view(instance);
     route.download(instance);
     done();
@@ -47,7 +34,7 @@ export const fileRoutes: FsServePluginCallback = (fastify, opts, done) => {
   // upload
   route.uploadOptions(fastify);
   fastify.register((instance, _opts, done) => {
-    useGuard(instance, Operation.Upload);
+    instance.register(guard, { options, operations: Operation.Upload });
     route.upload(instance);
     done();
   });
@@ -55,11 +42,7 @@ export const fileRoutes: FsServePluginCallback = (fastify, opts, done) => {
 };
 
 class FileRoute {
-  protected readonly fsserve: FsServe;
-
-  constructor(ctx: FsServePluginOptions['ctx']) {
-    this.fsserve = ctx.fsserve;
-  }
+  constructor(protected readonly fsserve: FsServe) {}
 
   // GET /
   root(fastify: FastifyInstance) {
