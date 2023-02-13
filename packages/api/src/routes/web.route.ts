@@ -12,9 +12,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 type BooleanString = 'true' | 'false';
 
-interface ApiData {
-  api: { sameOrigin: BooleanString };
-  apiOperations: { [K in Operation]: BooleanString };
+interface ViewData {
+  api: {
+    sameOrigin: BooleanString;
+    operations: { [K in Operation]: BooleanString };
+  };
 }
 
 export interface WebRouteOptions {
@@ -32,8 +34,10 @@ export const webRoute: FastifyPluginCallback<WebRouteOptions> = (
   const apiOperations = Object.values(Operation).reduce((all, operation) => {
     all[operation] = `${o[operation] || false}`;
     return all;
-  }, {} as ApiData['apiOperations']);
-  const data: ApiData = { api: { sameOrigin: 'true' }, apiOperations };
+  }, {} as ViewData['api']['operations']);
+  const data: ViewData = {
+    api: { sameOrigin: 'true', operations: apiOperations }
+  };
   const root = path.join(__dirname, options.buildPath);
 
   fastify.register(fastifyStatic, { root });

@@ -1,5 +1,5 @@
 import { reactive } from 'vue';
-import { config } from '../api/api';
+import { config } from '../api/config';
 import type { FsFile } from '../types/core.types';
 import type { FetchError } from './fetch';
 
