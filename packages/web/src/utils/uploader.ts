@@ -1,8 +1,7 @@
 import { reactive } from 'vue';
 import { config } from '../api/api';
+import type { FsFile } from '../types/core.types';
 import type { FetchError } from './fetch';
-
-// TODO: maybe remove File from UploadItem?
 
 export interface UploadItem {
   id: string;
@@ -10,7 +9,7 @@ export interface UploadItem {
   status: 'init' | 'uploading' | 'done' | 'error' | 'aborted';
   request?: XMLHttpRequest;
   progress: number;
-  response?: any;
+  response?: FsFile;
   error?: FetchError;
 }
 

@@ -135,8 +135,8 @@ class FileRoute {
         throw new FsError(400, 'Not a valid upload path.');
       }
       const target = await this.fsserve.upload(data.file, data.filename, path);
-      const file = await this.fsserve.file(target);
-      reply.status(200).send(file.file);
+      const { file } = await this.fsserve.file(target);
+      reply.status(200).send(file);
     });
   }
 }
