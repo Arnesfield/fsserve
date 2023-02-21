@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import saveAs from 'file-saver';
 import qs from 'qs';
 import { computed, reactive, ref, watch } from 'vue';
 import { useRoute, type RouteLocationRaw } from 'vue-router';
@@ -25,13 +24,6 @@ const uploader = useUploader('files');
 const reqFiles = useFetch(signal => {
   const params = qs.stringify({ path: path.value });
   return api.get('files', { signal, searchParams: params }).json<FsObject[]>();
-});
-const reqDownload = useFetch({
-  multiple: true,
-  handler(signal) {
-    const params = qs.stringify({ paths }, { arrayFormat: 'repeat' });
-    return api.get('files/download', { signal, searchParams: params }).blob();
-  }
 });
 
 const files = computed(() => {
@@ -66,9 +58,13 @@ fetchFiles();
 watch(route, () => fetchFiles());
 
 async function download() {
-  const [, blob] = await reqDownload.fetch();
-  // TODO: file name
-  if (blob) saveAs(blob);
+  const a = document.createElement('a');
+  a.href =
+    config.baseUrl +
+    '/files/download?' +
+    qs.stringify({ paths }, { arrayFormat: 'repeat' });
+  a.target = '_blank';
+  a.click();
 }
 
 function handleUpload() {
@@ -178,7 +174,13 @@ function removeUploadItem(item: UploadItem) {
     <div :class="{ actions: true, 'show-uploads': state.showUploads }">
       <div class="actions-container">
         <input hidden multiple type="file" ref="input" @change="upload" />
-        <button type="button" @click="handleUpload">Upload</button>
+        <button
+          type="button"
+          :disabled="!config.operations.upload"
+          @click="handleUpload"
+        >
+          Upload
+        </button>
         <button
           v-if="uploader.items.length > 0"
           type="button"
@@ -186,11 +188,7 @@ function removeUploadItem(item: UploadItem) {
         >
           {{ state.showUploads ? 'Hide' : 'Show' }} Uploads
         </button>
-        <button
-          type="button"
-          :disabled="paths.length === 0 || reqDownload.state.isLoading"
-          @click="download"
-        >
+        <button type="button" :disabled="paths.length === 0" @click="download">
           Download
         </button>
         <button
