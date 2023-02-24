@@ -27,7 +27,16 @@ export const apiRoute: FastifyPluginCallback<ApiRouteOptions> = (
   const fss = fsserve(options);
   const fileSize = options.size ?? MAX_FILE_SIZE;
   fastify.register(fastifyMultipart, { limits: { files: 1, fileSize } });
-  fastify.get('/', () => ({ name, version, description, homepage, license }));
+  fastify.get('/', () => {
+    return {
+      name,
+      version,
+      description,
+      homepage,
+      license,
+      operations: options.operations || {}
+    };
+  });
   fastify.register(fileRoute, { prefix: '/files', options, fsserve: fss });
   done();
 };

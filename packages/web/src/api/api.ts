@@ -1,4 +1,4 @@
 import ky from 'ky';
-import { config } from './config';
+import { meta } from '../config/meta';
 
-export const api = ky.create({ prefixUrl: config.baseUrl });
+export const api = ky.create({ prefixUrl: meta.baseUrl });

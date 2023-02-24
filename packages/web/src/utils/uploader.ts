@@ -1,5 +1,5 @@
 import { reactive } from 'vue';
-import { config } from '../api/config';
+import { meta } from '../config/meta';
 import type { FsFile } from '../types/core.types';
 import type { FetchError } from './fetch';
 
@@ -115,10 +115,7 @@ export function useUploader(urlOrOptions: string | UploaderOptions) {
         }
       });
       request.responseType = 'json';
-      request.open(
-        options.method || 'POST',
-        `${config.baseUrl}/${options.url}`
-      );
+      request.open(options.method || 'POST', `${meta.baseUrl}/${options.url}`);
       const formData = new FormData();
       path && formData.append('path', path);
       formData.append('file', file);

@@ -3,8 +3,9 @@ import qs from 'qs';
 import { computed, reactive, ref, watch } from 'vue';
 import { useRoute, type RouteLocationRaw } from 'vue-router';
 import { api } from '../api/api';
-import { config } from '../api/config';
 import UploadList from '../components/UploadList.vue';
+import { useConfig } from '../config/config';
+import { meta } from '../config/meta';
 import type { FsFile, FsObject } from '../types/core.types';
 import { useFetch } from '../utils/fetch';
 import { useUploader, type UploadItem } from '../utils/uploader';
@@ -19,7 +20,7 @@ const path = computed(() => {
 const input = ref<HTMLInputElement>();
 const paths = reactive<string[]>([]);
 const state = reactive({ showUploads: false });
-
+const { config } = useConfig();
 const uploader = useUploader('files');
 const reqFiles = useFetch(signal => {
   const params = qs.stringify({ path: path.value });
@@ -60,7 +61,7 @@ watch(route, () => fetchFiles());
 async function download() {
   const a = document.createElement('a');
   a.href =
-    config.baseUrl +
+    meta.baseUrl +
     '/files/download?' +
     qs.stringify({ paths }, { arrayFormat: 'repeat' });
   a.target = '_blank';
@@ -89,7 +90,7 @@ function upload(event: Event) {
 
 function getViewApiPath(item: FsFile) {
   const params = new URLSearchParams({ path: item.path }).toString();
-  return `${config.baseUrl}/files/view?${params}`;
+  return `${meta.baseUrl}/files/view?${params}`;
 }
 
 function handleCheck(item: FsObject) {

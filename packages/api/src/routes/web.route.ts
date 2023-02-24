@@ -5,7 +5,6 @@ import { FastifyPluginCallback } from 'fastify';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { FsError } from '../core/error';
-import { Operation } from '../types/operation.types';
 import { ServeOptions } from '../types/serve.types';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -13,10 +12,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 type BooleanString = 'true' | 'false';
 
 interface ViewData {
-  api: {
-    sameOrigin: BooleanString;
-    operations: { [K in Operation]: BooleanString };
-  };
+  api: { sameOrigin: BooleanString };
 }
 
 export interface WebRouteOptions {
@@ -30,14 +26,7 @@ export const webRoute: FastifyPluginCallback<WebRouteOptions> = (
   options,
   done
 ) => {
-  const o = options.options.operations || {};
-  const apiOperations = Object.values(Operation).reduce((all, operation) => {
-    all[operation] = `${o[operation] || false}`;
-    return all;
-  }, {} as ViewData['api']['operations']);
-  const data: ViewData = {
-    api: { sameOrigin: 'true', operations: apiOperations }
-  };
+  const data: ViewData = { api: { sameOrigin: 'true' } };
   const root = path.join(__dirname, options.buildPath);
 
   fastify.register(fastifyStatic, { root });
