@@ -136,7 +136,7 @@ class FileRoute {
       }
       const target = await this.fsserve.upload(data.file, data.filename, path);
       const { file } = await this.fsserve.file(target);
-      reply.status(200).send(file);
+      return reply.status(200).send(file);
     });
   }
 }

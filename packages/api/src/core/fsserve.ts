@@ -1,8 +1,7 @@
 import commonPathPrefix from 'common-path-prefix';
 import fs from 'fs';
 import path from 'path';
-import { pipeline } from 'stream';
-import util from 'util';
+import { pipeline } from 'stream/promises';
 import {
   FsFile,
   FsObject,
@@ -17,8 +16,6 @@ import { simplifyPaths } from '../utils/simplify-paths';
 import { zip, ZipItem } from '../utils/zip';
 import { FsError } from './error';
 import { createFsObject } from './file';
-
-const pump = util.promisify(pipeline);
 
 export type FsServe = InstanceType<typeof FsServeClass>;
 
@@ -121,7 +118,7 @@ class FsServeClass {
     );
     const filePath = await fsw.getWritePath(target);
     try {
-      await pump(stream, fs.createWriteStream(filePath));
+      await pipeline(stream, fs.createWriteStream(filePath));
       return filePath;
     } catch {
       // no await so it deletes asynchronously

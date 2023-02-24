@@ -2,6 +2,7 @@ import { FsServeOptions } from './core.types';
 
 export interface ServeOptions extends FsServeOptions {
   port?: number;
+  size?: number;
   ssl?: { cert?: string; key?: string };
   operations?: {
     download?: boolean;

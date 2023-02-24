@@ -2,8 +2,9 @@ import chalk from 'chalk-template';
 import { Option, program } from 'commander';
 import path from 'path';
 import { description, name, version } from '../../../package.json';
-import { ServeOptions } from './types/serve.types';
+import { MAX_FILE_SIZE } from './constants';
 import { serve } from './server';
+import { ServeOptions } from './types/serve.types';
 
 process.on('SIGINT', () => {
   console.log(chalk`{red Stopped.}`);
@@ -20,15 +21,21 @@ program
       .argParser(value => parseInt(value))
   )
   .addOption(
+    new Option('-s, --size <size>', 'max file size')
+      .default(MAX_FILE_SIZE)
+      .argParser(value => parseInt(value))
+  )
+  .addOption(
     new Option(
       '-o, --operations <operations>',
       'allow DRUM operations: Download, Remove, Upload, Modify'
-    ).default('d')
+    ).default('du')
   )
   .version(`v${version}`, '-v, --version');
 
 interface ProgramOptions {
   port: number;
+  size: number;
   operations: string;
 }
 
@@ -37,6 +44,7 @@ function getOptions(): ServeOptions {
   const operations = options.operations.toLowerCase();
   return {
     port: options.port,
+    size: options.size,
     rootDir: path.resolve(program.processedArgs[0]),
     operations: {
       download: operations.includes('d'),
