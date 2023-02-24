@@ -1,12 +1,12 @@
 import chalk from 'chalk-template';
 import { Server } from 'http';
 import path from 'path';
+import { Operation } from '../types/operation.types';
 import { ServeOptions } from '../types/serve.types';
 import { getAddresses } from '../utils/network';
 import { createServer } from './server';
 
 export async function serve(options: ServeOptions = {}): Promise<Server> {
-  // TODO: transform and convert to validated options
   const port =
     typeof options.port !== 'number'
       ? 8080
@@ -23,14 +23,11 @@ export async function serve(options: ServeOptions = {}): Promise<Server> {
   console.log(chalk`{yellow Serving}     {cyan %s/}`, target);
   // operations
   const o = options.operations || {};
-  const operations: { allow?: boolean; name: string }[] = [
-    { allow: o.download, name: 'Download' },
-    { allow: o.remove, name: 'Remove' },
-    { allow: o.upload, name: 'Upload' },
-    { allow: o.modify, name: 'Modify' }
-  ];
+  const operations = Object.entries(Operation).map(([name, operation]) => {
+    return { allow: !!o[operation], name };
+  });
   console.log(
-    chalk`{yellow Operations}  %s  %s  %s  %s`,
+    chalk`{yellow Operations}` + '  %s'.repeat(operations.length),
     ...operations.map(operation => {
       const prefix = operation.allow ? 'green \u2714' : 'red \u2718';
       return chalk`{${prefix}} ${operation.name}`;
