@@ -1,10 +1,13 @@
 import { MultipartValue } from '@fastify/multipart';
 import type { JSONSchemaType } from 'ajv';
+import contentDisposition from 'content-disposition';
 import {
   FastifyInstance,
   FastifyPluginCallback,
+  FastifyRequest,
   RouteGenericInterface
 } from 'fastify';
+import send from 'send';
 import { FsError } from '../core/error';
 import { FsServe } from '../core/fsserve';
 import { guard } from '../plugins/guard';
@@ -60,6 +63,10 @@ class FileRoute {
     });
   }
 
+  protected send(request: FastifyRequest, filePath: string) {
+    return send(request.raw, filePath, { acceptRanges: true });
+  }
+
   // GET /view
   view(fastify: FastifyInstance) {
     interface Schema extends RouteGenericInterface {
@@ -74,13 +81,13 @@ class FileRoute {
         }
       },
       handler: async (request, reply) => {
-        const { file, stream } = await this.fsserve.file(request.query.path);
-        const filename = JSON.stringify(file.name);
+        const file = await this.fsserve.file(request.query.path);
         return reply
-          .type(file.type)
-          .header('Content-Length', file.size)
-          .header('Content-Disposition', `filename=${filename}`)
-          .send(stream());
+          .header(
+            'Content-Disposition',
+            contentDisposition(file.name, { type: 'inline' })
+          )
+          .send(this.send(request, file.path));
       }
     });
   }
@@ -101,15 +108,13 @@ class FileRoute {
         }
       },
       handler: async (request, reply) => {
-        const { file, stream } = await this.fsserve.files(request.query.paths);
-        const filename = JSON.stringify(file.name);
-        if (file.size !== null) {
-          reply.header('Content-Length', file.size);
+        const collection = await this.fsserve.files(request.query.paths);
+        const { file } = collection;
+        reply.header('Content-Disposition', contentDisposition(file.name));
+        if (!collection.virtual) {
+          return reply.send(this.send(request, file.path));
         }
-        return reply
-          .type(file.type)
-          .header('Content-Disposition', `attachment; filename=${filename}`)
-          .send(stream());
+        return reply.type(file.type).send(collection.stream());
       }
     });
   }
@@ -135,7 +140,7 @@ class FileRoute {
         throw new FsError(400, 'Not a valid upload path.');
       }
       const target = await this.fsserve.upload(data.file, data.filename, path);
-      const { file } = await this.fsserve.file(target);
+      const file = await this.fsserve.file(target);
       return reply.status(200).send(file);
     });
   }

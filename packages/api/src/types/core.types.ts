@@ -20,25 +20,27 @@ export interface FsDirectory {
 
 export type FsObject = FsFile | FsDirectory;
 
-export interface FsStreamObject {
-  file: FsFile;
-  stream(): NodeJS.ReadableStream;
-}
-
-export interface FsFileCollection extends Omit<FsFile, 'size' | 'stats'> {
-  size: number | null;
-}
-
 export interface StatsMap {
   [Path: string]: Stats;
 }
 
-export interface FsStreamCollection {
-  file: FsFileCollection;
+export interface FsFileCollection extends Omit<FsFile, 'size' | 'stats'> {
+  size: null;
   stats: StatsMap;
-  virtual: boolean;
+}
+
+export interface FsStreamObject {
+  file: FsFile;
+  virtual: false;
+}
+
+export interface FsStreamArchive {
+  file: FsFileCollection;
+  virtual: true;
   stream(): NodeJS.ReadableStream;
 }
+
+export type FsStreamCollection = FsStreamObject | FsStreamArchive;
 
 export interface FsServeOptions {
   rootDir?: string;

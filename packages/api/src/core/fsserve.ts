@@ -7,7 +7,6 @@ import {
   FsObject,
   FsServeOptions,
   FsStreamCollection,
-  FsStreamObject,
   StatsMap
 } from '../types/core.types';
 import { createDate } from '../utils/date';
@@ -42,13 +41,10 @@ class FsServeClass {
     return Promise.all(promises);
   }
 
-  async file(path: string): Promise<FsStreamObject> {
+  async file(path: string): Promise<FsFile> {
     const filePath = fsw.resolve(this.rootDir, path);
     const stats = await fsw.statCheck('file', filePath.absolute);
-    return {
-      file: await createFsObject(filePath.relative, stats),
-      stream: () => fs.createReadStream(filePath.absolute)
-    };
+    return createFsObject(filePath.relative, stats);
   }
 
   async files(paths: string[]): Promise<FsStreamCollection> {
@@ -66,20 +62,12 @@ class FsServeClass {
     );
     // check for single path and stream file directly
     const single = allPaths.length === 1;
-    const virtual = !single;
     const filePath = single
       ? path.relative(this.rootDir, targets[0].absolute)
       : '';
     const stats = targets[0].stats;
     if (single && stats.isFile()) {
-      const file = await createFsObject<FsFile>(filePath, stats);
-      delete (file as Partial<FsFile>).stats;
-      return {
-        file,
-        stats: { [filePath]: stats },
-        virtual,
-        stream: () => fs.createReadStream(filePath)
-      };
+      return { file: await createFsObject(filePath, stats), virtual: false };
     }
     // zip contents for directory / multiple paths
     const basePath = single
@@ -98,10 +86,10 @@ class FsServeClass {
         path: basePath,
         kind: 'file',
         type: 'application/zip',
-        size: null
+        size: null,
+        stats: statsMap
       },
-      stats: statsMap,
-      virtual,
+      virtual: true,
       stream: () => zip(zipItems)
     };
   }
