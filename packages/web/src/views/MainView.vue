@@ -27,10 +27,7 @@ const reqFiles = useFetch(signal => {
   return api.get('files', { signal, searchParams: params }).json<FsObject[]>();
 });
 
-const files = computed(() => {
-  const items = reqFiles.state.data || [];
-  return items.filter((item): item is FsFile => item.kind === 'file');
-});
+const files = computed(() => reqFiles.state.data || []);
 const isSelectedAll = computed(() => {
   return (
     files.value.length > 0 &&
@@ -148,9 +145,7 @@ function removeUploadItem(item: UploadItem) {
                 type="checkbox"
                 class="checkbox"
                 :id="`item-${item.path}`"
-                :disabled="
-                  reqFiles.state.isLoading || item.kind === 'directory'
-                "
+                :disabled="reqFiles.state.isLoading"
                 :checked="paths.includes(item.path)"
                 @change="() => handleCheck(item)"
               />
