@@ -1,5 +1,5 @@
 import chalk from 'chalk-template';
-import { Option, program } from 'commander';
+import { program } from 'commander';
 import path from 'path';
 import { description, name, version } from '../../../package.json';
 import { MAX_FILE_SIZE } from './constants';
@@ -15,28 +15,31 @@ program
   .name(name)
   .description(description)
   .argument('[dir]', 'directory to serve', '.')
-  .addOption(
-    new Option('-p, --port <port>', 'server port')
-      .default(8080)
-      .argParser(value => parseInt(value))
+  .option('-p, --port <port>', 'server port', value => parseInt(value), 8080)
+  .option(
+    '-s, --size <size>',
+    'max file size',
+    value => parseInt(value),
+    MAX_FILE_SIZE
   )
-  .addOption(
-    new Option('-s, --size <size>', 'max file size')
-      .default(MAX_FILE_SIZE)
-      .argParser(value => parseInt(value))
+  .option(
+    '-o, --operations <operations>',
+    'allow DRUM operations: Download, Remove, Upload, Modify',
+    'du'
   )
-  .addOption(
-    new Option(
-      '-o, --operations <operations>',
-      'allow DRUM operations: Download, Remove, Upload, Modify'
-    ).default('du')
+  .option(
+    '-P, --password <password>',
+    'require password to access server endpoints'
   )
+  .option('-S, --secret <secret>', 'secret key (default: "secret")')
   .version(`v${version}`, '-v, --version');
 
 interface ProgramOptions {
   port: number;
   size: number;
   operations: string;
+  password?: string;
+  secret?: string;
 }
 
 function getOptions(): ServeOptions {
@@ -46,6 +49,8 @@ function getOptions(): ServeOptions {
     port: options.port,
     size: options.size,
     rootDir: path.resolve(program.processedArgs[0]),
+    password: options.password,
+    secret: options.secret,
     operations: {
       download: operations.includes('d'),
       remove: operations.includes('r'),

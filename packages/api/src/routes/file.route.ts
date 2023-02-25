@@ -11,6 +11,7 @@ import send from 'send';
 import { FsError } from '../core/error';
 import { FsServe } from '../core/fsserve';
 import { guard } from '../plugins/guard';
+import { jwt } from '../plugins/jwt';
 import { Operation } from '../types/operation.types';
 import { ServeOptions } from '../types/serve.types';
 
@@ -25,6 +26,7 @@ export const fileRoute: FastifyPluginCallback<FileRoutesOptions> = (
   done
 ) => {
   const { options } = opts;
+  fastify.register(jwt, { verify: !!options.password });
   const route = new FileRoute(opts.fsserve);
   route.root(fastify);
   // download
