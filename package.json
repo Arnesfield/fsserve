@@ -35,6 +35,8 @@
   ],
   "scripts": {},
   "dependencies": {
+    "@fastify/cookie": "^8.3.0",
+    "@fastify/csrf-protection": "^6.1.0",
     "@fastify/jwt": "^6.6.0",
     "@fastify/multipart": "^7.4.1",
     "@fastify/static": "^6.9.0",
