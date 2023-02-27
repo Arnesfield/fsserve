@@ -1,9 +1,16 @@
 export function createDate(date = new Date()): string {
   const d = '2-digit';
-  const dateStr = date.toLocaleDateString('en-CA');
-  const time = date
-    .toLocaleTimeString(undefined, { hour: d, minute: d, second: d })
-    .replace(' ', '-')
-    .replaceAll(':', '-');
-  return `${dateStr}_${time}`;
+  const dateStr = new Intl.DateTimeFormat('en-US', {
+    month: d,
+    day: d,
+    year: 'numeric',
+    hour: d,
+    minute: d,
+    second: d
+  }).format(date);
+  return dateStr
+    .replaceAll('/', '-')
+    .replaceAll(':', '-')
+    .replace(', ', '_')
+    .replace(/\u202f/g, '-');
 }

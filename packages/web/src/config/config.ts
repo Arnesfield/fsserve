@@ -2,6 +2,7 @@ import { defineStore, storeToRefs } from 'pinia';
 import { computed, onUnmounted } from 'vue';
 import { api } from '../api/api';
 import { useFetch } from '../utils/fetch';
+import { useAuth } from './auth';
 
 interface OperationMap {
   download?: boolean;
@@ -10,28 +11,40 @@ interface OperationMap {
   modify?: boolean;
 }
 
+export interface Config {
+  operations: OperationMap;
+}
+
 const configStore = defineStore('config', () => {
-  const reqApi = useFetch(() => {
-    return api.get('').json<{ operations: OperationMap }>();
+  const { validate } = useAuth();
+  const reqData = useFetch(async () => {
+    try {
+      return await api.get('data').json<Config>();
+    } catch (error) {
+      // validate when data fetch fails
+      validate();
+      throw error;
+    }
   });
   // refetch on window focus
-  reqApi.fetch();
+  reqData.fetch();
   const focus = () => {
-    reqApi.fetch();
+    reqData.fetch();
   };
   window.addEventListener('focus', focus);
   onUnmounted(() => {
     window.removeEventListener('focus', focus);
   });
 
-  const config = computed(() => {
-    const operations = reqApi.state.data?.operations || {};
-    return { operations };
+  const config = computed((): Config => {
+    return reqData.state.data || { operations: {} };
   });
 
-  return { config };
+  return { config, reqData };
 });
 
 export function useConfig() {
-  return storeToRefs(configStore());
+  const store = configStore();
+  const { reqData } = store;
+  return { ...storeToRefs(store), reqData };
 }

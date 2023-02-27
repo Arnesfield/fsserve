@@ -37,7 +37,6 @@ export const fileRoute: FastifyPluginCallback<FileRoutesOptions> = (
     done();
   });
   // upload
-  route.uploadOptions(fastify);
   fastify.register((instance, _opts, done) => {
     instance.register(guard, { options, operations: Operation.Upload });
     route.upload(instance);
@@ -121,29 +120,31 @@ class FileRoute {
     });
   }
 
-  // OPTIONS /
-  uploadOptions(fastify: FastifyInstance) {
-    fastify.options('/', (_request, reply) => reply.status(200).send());
-  }
-
   // POST /
   upload(fastify: FastifyInstance) {
-    fastify.post('/', async (request, reply) => {
-      const data = await request.file();
-      if (!data) {
-        throw new FsError(400, 'No file to upload.');
+    fastify.post('/', {
+      onRequest: fastify.csrfProtection,
+      handler: async (request, reply) => {
+        const data = await request.file();
+        if (!data) {
+          throw new FsError(400, 'No file to upload.');
+        }
+        const pathField = data.fields.path;
+        const pathPart = (
+          Array.isArray(pathField) ? pathField[0] : pathField
+        ) as MultipartValue<string> | undefined;
+        const path = pathPart?.value;
+        if (path != null && typeof path !== 'string') {
+          throw new FsError(400, 'Not a valid upload path.');
+        }
+        const target = await this.fsserve.upload(
+          data.file,
+          data.filename,
+          path
+        );
+        const file = await this.fsserve.file(target);
+        return reply.status(200).send(file);
       }
-      const pathField = data.fields.path;
-      const pathPart = (Array.isArray(pathField) ? pathField[0] : pathField) as
-        | MultipartValue<string>
-        | undefined;
-      const path = pathPart?.value;
-      if (path != null && typeof path !== 'string') {
-        throw new FsError(400, 'Not a valid upload path.');
-      }
-      const target = await this.fsserve.upload(data.file, data.filename, path);
-      const file = await this.fsserve.file(target);
-      return reply.status(200).send(file);
     });
   }
 }

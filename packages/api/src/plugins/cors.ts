@@ -17,11 +17,16 @@ const corsPlugin: FastifyPluginCallback<CorsOptions> = (
     return str.endsWith('/') ? str.slice(0, -1) : str;
   });
   fastify.addHook('onRequest', (request, reply, done) => {
-    const origin = request.headers.origin;
-    if (origin && origins.includes(origin)) {
-      reply.header('Access-Control-Allow-Origin', origin);
-      reply.header('Access-Control-Allow-Headers', 'Content-Type');
-      reply.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    const { origin } = request.getUrl();
+    if (origins.includes(origin)) {
+      reply
+        .header('Access-Control-Allow-Origin', origin)
+        .header('Access-Control-Allow-Credentials', true)
+        .header('Access-Control-Allow-Headers', 'Content-Type, X-CSRF-Token')
+        .header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      if (request.method === 'OPTIONS') {
+        reply.status(200).send();
+      }
     }
     done();
   });

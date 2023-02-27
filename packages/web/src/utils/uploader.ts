@@ -1,4 +1,5 @@
 import { reactive } from 'vue';
+import { useAuth } from '../config/auth';
 import { meta } from '../config/meta';
 import type { FsFile } from '../types/core.types';
 import type { FetchError } from './fetch';
@@ -21,6 +22,7 @@ export interface UploaderOptions {
 export function useUploader(urlOrOptions: string | UploaderOptions) {
   const options =
     typeof urlOrOptions === 'string' ? { url: urlOrOptions } : urlOrOptions;
+  const auth = useAuth().state;
   const items = reactive<UploadItem[]>([]);
 
   function find(file: File) {
@@ -115,7 +117,12 @@ export function useUploader(urlOrOptions: string | UploaderOptions) {
         }
       });
       request.responseType = 'json';
+      request.withCredentials = true;
       request.open(options.method || 'POST', `${meta.baseUrl}/${options.url}`);
+      const { csrfToken } = auth.value;
+      if (csrfToken) {
+        request.setRequestHeader('X-CSRF-Token', csrfToken);
+      }
       const formData = new FormData();
       path && formData.append('path', path);
       formData.append('file', file);

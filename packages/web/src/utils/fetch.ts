@@ -81,7 +81,6 @@ export function useFetch<T>(
     }
     const controller = new AbortController();
     controllers.push(controller);
-    state.error = undefined;
     state.isLoading = true;
     const result = await fetch(() => handler(controller.signal));
     const [error, data] = result;
@@ -92,11 +91,12 @@ export function useFetch<T>(
     if (!multiple || controllers.length === 0) {
       state.isLoading = false;
     }
+    // skip setting state
     if (multiple) {
-      // skip setting state
-    } else if (error) {
-      state.error = error;
-    } else if (data !== null) {
+      return result;
+    }
+    state.error = error || undefined;
+    if (data !== null) {
       state.data = data as UnwrapRef<T>;
     }
     return result;

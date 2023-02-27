@@ -1,4 +1,3 @@
-import fastifyJwt from '@fastify/jwt';
 import fastifyMultipart from '@fastify/multipart';
 import { JSONSchemaType } from 'ajv';
 import { randomUUID } from 'crypto';
@@ -14,7 +13,7 @@ import {
   name,
   version
 } from '../../../../package.json';
-import { MAX_FILE_SIZE } from '../constants';
+import { COOKIE_AUTH_TOKEN, MAX_FILE_SIZE } from '../constants';
 import { FsError } from '../core/error';
 import { fsserve } from '../core/fsserve';
 import { jwt } from '../plugins/jwt';
@@ -35,12 +34,12 @@ export const apiRoute: FastifyPluginCallback<ApiRouteOptions> = (
   const { options } = opts;
   const fss = fsserve(options);
   const fileSize = options.size ?? MAX_FILE_SIZE;
-  fastify.register(fastifyJwt, { secret: options.secret || randomUUID() });
   fastify.register(fastifyMultipart, { limits: { files: 1, fileSize } });
   fastify.register(fileRoute, { prefix: '/files', options, fsserve: fss });
   // api route
   const route = new ApiRoute(options);
   route.root(fastify);
+  route.validate(fastify);
   route.auth(fastify);
   // data
   fastify.register((instance, _opts, done) => {
@@ -56,16 +55,19 @@ class ApiRoute {
 
   // GET /
   root(fastify: FastifyInstance) {
-    fastify.get('/', () => {
-      return {
-        name,
-        version,
-        description,
-        homepage,
-        license,
-        // TODO: remove once ui auth is implemented
-        operations: this.options.operations || {}
-      };
+    fastify.get('/', () => ({ name, version, description, homepage, license }));
+  }
+
+  // GET /data
+  data(fastify: FastifyInstance) {
+    fastify.get('/data', () => ({ operations: this.options.operations || {} }));
+  }
+
+  // GET /validate
+  validate(fastify: FastifyInstance) {
+    fastify.get('/validate', (request, reply) => {
+      const csrfToken = reply.generateCsrf(request.getCookieOptions());
+      return { csrfToken };
     });
   }
 
@@ -81,6 +83,7 @@ class ApiRoute {
           properties: { password: { type: 'string' } }
         }
       },
+      onRequest: fastify.csrfProtection,
       handler: (request, reply) => {
         if (request.body.password !== this.options.password) {
           throw new FsError(401, 'Invalid password.');
@@ -89,13 +92,10 @@ class ApiRoute {
           { payload: { userId: randomUUID() } },
           { expiresIn: '1d' }
         );
-        return reply.send({ token });
+        return reply
+          .setCookie(COOKIE_AUTH_TOKEN, token, request.getCookieOptions())
+          .send({ ok: true });
       }
     });
-  }
-
-  // GET /data
-  data(fastify: FastifyInstance) {
-    fastify.get('/data', () => ({ operations: this.options.operations || {} }));
   }
 }
