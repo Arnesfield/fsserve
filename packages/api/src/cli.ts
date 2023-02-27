@@ -32,6 +32,14 @@ program
     'require password to access server endpoints'
   )
   .option('-S, --secret <secret>', 'secret key (default: "secret")')
+  .option(
+    '-C, --cert [cert]',
+    'path to cert.pem (default: "cert.pem" when -C or -K options are provided)'
+  )
+  .option(
+    '-K, --key [key]',
+    'path to key.pem (default: "key.pem" when -C or -K options are provided'
+  )
   .version(`v${version}`, '-v, --version');
 
 interface ProgramOptions {
@@ -40,17 +48,26 @@ interface ProgramOptions {
   operations: string;
   password?: string;
   secret?: string;
+  cert?: string | boolean;
+  key?: string | boolean;
 }
 
 function getOptions(): ServeOptions {
   const options = program.opts<ProgramOptions>();
   const operations = options.operations.toLowerCase();
+  const ssl: ServeOptions['ssl'] = !(options.cert || options.key)
+    ? undefined
+    : {
+        cert: typeof options.cert === 'string' ? options.cert : 'cert.pem',
+        key: typeof options.key === 'string' ? options.key : 'key.pem'
+      };
   return {
     port: options.port,
     size: options.size,
     rootDir: path.resolve(program.processedArgs[0]),
     password: options.password,
     secret: options.secret,
+    ssl,
     operations: {
       download: operations.includes('d'),
       remove: operations.includes('r'),
