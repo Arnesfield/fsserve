@@ -65,7 +65,11 @@ class FileRoute {
   }
 
   protected send(request: FastifyRequest, filePath: string) {
-    return send(request.raw, filePath, { acceptRanges: true });
+    return send(request.raw, filePath, {
+      acceptRanges: true,
+      cacheControl: false,
+      dotfiles: 'allow'
+    });
   }
 
   // GET /view
