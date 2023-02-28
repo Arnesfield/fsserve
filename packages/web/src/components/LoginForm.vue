@@ -1,25 +1,36 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue';
+import { nextTick, onMounted, reactive, ref } from 'vue';
 import { useAuth } from '../config/auth';
-
-const emit = defineEmits<{ (event: 'auth'): void }>();
+import { useConfig } from '../config/config';
+import type { FetchError } from '../utils/fetch';
 
 const input = ref<HTMLInputElement>();
 const form = reactive({ password: '' });
-const { reqAuth, login } = useAuth();
-const { state } = reqAuth;
-
-const submit = async () => {
-  if (state.isLoading) return;
-  const [, data] = await login(form);
-  if (data) emit('auth');
-  // focus input again
-  input.value?.focus();
-};
-
-onMounted(() => {
-  input.value?.focus();
+const state = reactive<{ isLoading: boolean; error?: FetchError }>({
+  isLoading: false
 });
+const { login } = useAuth();
+const { reqData } = useConfig();
+
+function focus() {
+  input.value?.focus();
+}
+onMounted(focus);
+
+async function submit() {
+  if (state.isLoading) return;
+  state.isLoading = true;
+  state.error = undefined;
+  const [loginError, data] = await login(form);
+  if (loginError) state.error = loginError;
+  if (data) {
+    const [dataError] = await reqData.fetch();
+    if (dataError) state.error = dataError;
+  }
+  state.isLoading = false;
+  // focus input again
+  nextTick(focus);
+}
 </script>
 
 <template>

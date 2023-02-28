@@ -10,10 +10,10 @@ const { state } = reqData;
 <template>
   <div v-if="!state.data && !state.error && state.isLoading">Loading...</div>
   <div v-else-if="state.error">
-    <p>
+    <login-form v-if="state.error.statusCode === 401" />
+    <p v-else>
       {{ state.error.message }}
     </p>
-    <login-form v-if="state.error.statusCode === 401" @auth="reqData.fetch()" />
   </div>
   <main-view v-else-if="state.data" />
 </template>
