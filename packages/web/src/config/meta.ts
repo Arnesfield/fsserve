@@ -1,24 +1,5 @@
-function metaEl<T extends DOMStringMap>(name: string) {
-  const metaEl = document.querySelector<HTMLMetaElement>(
-    `meta[name="${name}"]`
-  );
-  return (metaEl?.dataset || {}) as { [K in keyof T]: T[K] | undefined };
-}
-
-function isTrue(value: string | undefined, defaultValue: string) {
-  const v =
-    typeof value === 'undefined' || value.startsWith('<%=')
-      ? defaultValue
-      : value;
-  return v === 'true';
-}
-
-const api = metaEl<{ sameOrigin: string }>('api');
-
-const meta = {
-  baseUrl: '/api',
-  sameOrigin: isTrue(api.sameOrigin, 'false')
-};
+// use sameOrigin for non dev environment
+const meta = { baseUrl: '/api', sameOrigin: !import.meta.env.DEV };
 
 if (!meta.sameOrigin) {
   const url = new URL(location.origin);
