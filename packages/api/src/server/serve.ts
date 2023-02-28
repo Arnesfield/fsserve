@@ -40,7 +40,7 @@ export async function serve(options: ServeOptions = {}): Promise<Server> {
   console.log(
     chalk`{yellow Secret}      %s%s`,
     yesOrNo(options.secret),
-    options.secret ? '' : ' (default: `randomUUID()`)'
+    options.secret ? '' : ' (using random value)'
   );
   // operations
   const o = options.operations || {};

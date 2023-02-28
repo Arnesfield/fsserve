@@ -1,8 +1,9 @@
 import fastifyCookie from '@fastify/cookie';
 import fastifyCsrfProtection from '@fastify/csrf-protection';
 import fastifyJwt from '@fastify/jwt';
-import { randomUUID } from 'crypto';
+import { randomBytes as randomBytesFn } from 'crypto';
 import Fastify, { FastifyInstance } from 'fastify';
+import { promisify } from 'util';
 import { COOKIE_AUTH_TOKEN, COOKIE_CSRF_TOKEN } from '../constants';
 import { cors } from '../plugins/cors';
 import { requestUtils } from '../plugins/request-utils';
@@ -11,13 +12,15 @@ import { webRoute } from '../routes/web.route';
 import { ServeOptions } from '../types/serve.types';
 import { getHttpsOptions } from './options';
 
+const randomBytes = promisify(randomBytesFn);
+
 export async function createServer(
   options: ServeOptions,
   addresses: string[]
 ): Promise<FastifyInstance> {
   const apiPath = '/api';
   const fastify = Fastify({ https: await getHttpsOptions(options) });
-  const secret = options.secret || randomUUID();
+  const secret = options.secret || (await randomBytes(32)).toString('base64');
   fastify.register(fastifyCookie, { secret });
   fastify.register(fastifyCsrfProtection, {
     cookieKey: COOKIE_CSRF_TOKEN,
