@@ -91,6 +91,7 @@ function getViewApiPath(item: FsFile) {
 }
 
 function handleCheck(item: FsObject) {
+  if (!config.value.operations.download) return;
   const index = paths.indexOf(item.path);
   if (index > -1) {
     paths.splice(index, 1);
@@ -133,7 +134,7 @@ function removeUploadItem(item: UploadItem) {
             type="checkbox"
             class="checkbox"
             :checked="isSelectedAll"
-            :disabled="reqFiles.state.isLoading"
+            :disabled="!config.operations.download || reqFiles.state.isLoading"
             @change="selectAll"
           />
           <label for="all">Select All</label>
@@ -145,7 +146,9 @@ function removeUploadItem(item: UploadItem) {
                 type="checkbox"
                 class="checkbox"
                 :id="`item-${item.path}`"
-                :disabled="reqFiles.state.isLoading"
+                :disabled="
+                  !config.operations.download || reqFiles.state.isLoading
+                "
                 :checked="paths.includes(item.path)"
                 @change="() => handleCheck(item)"
               />
@@ -159,7 +162,10 @@ function removeUploadItem(item: UploadItem) {
               </div>
               <div v-else>
                 <label :for="`item-${item.path}`">{{ item.name }}</label>
-                &nbsp;<a :href="getViewApiPath(item)" target="_blank">View</a>
+                <template v-if="config.operations.download">
+                  &nbsp;
+                  <a :href="getViewApiPath(item)" target="_blank">View</a>
+                </template>
               </div>
             </div>
           </li>
@@ -184,7 +190,12 @@ function removeUploadItem(item: UploadItem) {
         >
           {{ state.showUploads ? 'Hide' : 'Show' }} Uploads
         </button>
-        <button type="button" :disabled="paths.length === 0" @click="download">
+        <button
+          v-if="config.operations.download"
+          type="button"
+          :disabled="paths.length === 0"
+          @click="download"
+        >
           Download
         </button>
         <button
