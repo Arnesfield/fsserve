@@ -128,6 +128,11 @@ class FileRoute {
   upload(fastify: FastifyInstance) {
     fastify.post('/', {
       onRequest: fastify.csrfProtection,
+      onError: (_, reply, error) => {
+        // close the connection to avoid continuing the upload, taken from:
+        // https://github.com/fastify/fastify-multipart/issues/131#issuecomment-650658315
+        reply.header('Connection', 'close').send(error);
+      },
       handler: async (request, reply) => {
         const data = await request.file();
         if (!data) {
