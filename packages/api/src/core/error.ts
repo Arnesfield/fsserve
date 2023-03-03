@@ -1,13 +1,29 @@
-export class FsError extends Error {
-  readonly values: string[];
+import { STATUS_CODES } from 'http';
+
+export interface FsErrorObject<Metadata extends Record<string, any>> {
+  statusCode: number;
+  error: string;
+  message: string;
+  metadata?: Metadata;
+}
+
+export class FsError<Metadata extends Record<string, any>> extends Error {
   constructor(
     readonly statusCode: number,
     message?: string,
-    ...values: string[]
+    readonly metadata?: Metadata
   ) {
     super(message);
     this.name = 'FsError';
-    this.values = values;
     Error.captureStackTrace?.(this, FsError);
+  }
+
+  toJSON(): FsErrorObject<Metadata> {
+    return {
+      statusCode: this.statusCode,
+      error: STATUS_CODES[this.statusCode] || 'Error',
+      message: this.message,
+      metadata: this.metadata
+    };
   }
 }

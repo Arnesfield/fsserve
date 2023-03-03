@@ -12,11 +12,7 @@ export function absolute(
 ): string {
   const absolute = path.resolve(value, ...paths);
   if (!absolute.startsWith(from)) {
-    throw new FsError(
-      403,
-      'Cannot access beyond current working directory.',
-      absolute
-    );
+    throw new FsError(403, 'Cannot access beyond current working directory.');
   }
   return absolute;
 }
@@ -37,9 +33,7 @@ export async function stat(value: string): Promise<fs.Stats> {
     const isNotFound =
       error instanceof Error &&
       (error as NodeJS.ErrnoException).code === 'ENOENT';
-    throw isNotFound
-      ? new FsError(404, 'File or directory not found.', value)
-      : error;
+    throw isNotFound ? new FsError(404, 'File or directory not found.') : error;
   }
 }
 
@@ -49,7 +43,7 @@ export async function statCheck(
 ): Promise<fs.Stats> {
   const stats = await stat(value);
   if ((kind === 'file') === stats.isDirectory()) {
-    throw new FsError(400, `Not a ${kind}.`, value);
+    throw new FsError(400, `Not a ${kind}.`);
   }
   return stats;
 }

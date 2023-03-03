@@ -24,11 +24,7 @@ const guardPlugin: FastifyPluginCallback<GuardOptions> = (
       operations.every(operation => allOpertations[operation]);
     const error = valid
       ? undefined
-      : new FsError(
-          403,
-          'Not authorized to perform this action.',
-          ...operations
-        );
+      : new FsError(403, 'Not authorized to perform this action.');
     done(error);
   });
   done();

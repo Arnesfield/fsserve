@@ -5,6 +5,7 @@ import { randomBytes as randomBytesFn } from 'crypto';
 import Fastify, { FastifyInstance } from 'fastify';
 import { promisify } from 'util';
 import { COOKIE_AUTH_TOKEN, COOKIE_CSRF_TOKEN } from '../constants';
+import { FsError } from '../core/error';
 import { cors } from '../plugins/cors';
 import { requestUtils } from '../plugins/request-utils';
 import { apiRoute } from '../routes/api.route';
@@ -20,6 +21,13 @@ export async function createServer(
 ): Promise<FastifyInstance> {
   const apiPath = '/api';
   const fastify = Fastify({ https: await getHttpsOptions(options) });
+  fastify.setErrorHandler((error, _, reply) => {
+    if (error instanceof FsError) {
+      reply.status(error.statusCode).send(error.toJSON());
+    } else {
+      reply.send(error);
+    }
+  });
   const secret = options.secret || (await randomBytes(32)).toString('base64');
   fastify.register(fastifyCookie, { secret });
   fastify.register(fastifyCsrfProtection, {
