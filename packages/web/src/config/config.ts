@@ -17,9 +17,9 @@ export interface Config {
 
 const configStore = defineStore('config', () => {
   const { validate } = useAuth();
-  const reqData = useFetch(async () => {
+  const reqData = useFetch(async signal => {
     try {
-      return await api.get('data').json<Config>();
+      return await api.get('data', { signal }).json<Config>();
     } catch (error) {
       // validate when data fetch fails
       validate();

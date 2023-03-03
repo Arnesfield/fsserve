@@ -10,13 +10,13 @@ export interface AuthData {
 const authStore = defineStore('auth', () => {
   const state = reactive<AuthData>({ csrfToken: null });
   const reqAuth = useFetch<{ ok: true }>();
-  const reqValidate = useFetch(() => {
-    return api.get('validate').json<{ csrfToken: string }>();
+  const reqValidate = useFetch(signal => {
+    return api.get('validate', { signal }).json<{ csrfToken: string }>();
   });
 
   function login(payload: { password: string }) {
-    return reqAuth.fetch(() => {
-      return api.post('auth', { json: payload }).json();
+    return reqAuth.fetch(signal => {
+      return api.post('auth', { signal, json: payload }).json();
     });
   }
 
