@@ -2,6 +2,7 @@ import { reactive } from 'vue';
 import { useAuth } from '../config/auth';
 import { meta } from '../config/meta';
 import type { FsFile } from '../types/core.types';
+import { createError } from './error';
 import type { FetchError } from './fetch';
 
 export interface UploadItem {
@@ -11,7 +12,7 @@ export interface UploadItem {
   request?: XMLHttpRequest;
   progress: number;
   response?: FsFile;
-  error?: FetchError;
+  error?: FetchError | null;
 }
 
 export interface UploaderOptions {
@@ -82,11 +83,13 @@ export function useUploader(urlOrOptions: string | UploaderOptions) {
         if (status !== 'error') {
           updates.progress = status === 'done' ? 100 : 0;
         } else {
-          updates.error = response || {
-            statusCode: 500,
-            error: 'Upload Error',
-            message: 'An error occurred while uploading the file.'
-          };
+          updates.error = createError(
+            response || {
+              statusCode: -1,
+              error: 'Upload Error',
+              message: 'An error occurred while uploading the file.'
+            }
+          );
         }
         save(file, updates);
         resolve(status === 'done');

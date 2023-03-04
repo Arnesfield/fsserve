@@ -5,11 +5,18 @@ import {
   type UnwrapNestedRefs,
   type UnwrapRef
 } from 'vue';
+import { createError } from './error';
 
-export interface FetchError {
+export interface FetchError<Metadata = unknown> {
   statusCode: number;
   error: string;
   message: string;
+  metadata?: Metadata;
+  /**
+   * Get the error metadata.
+   * @param statusCode Only return metadata if the error matches this status code.
+   */
+  getMetadata<T = Metadata>(statusCode?: number): T | undefined;
 }
 
 export async function fetch<T>(
@@ -19,13 +26,13 @@ export async function fetch<T>(
     return [null, await handler()];
   } catch (err) {
     // ignore other cases?
-    const fetchError: FetchError | null =
+    const error: Omit<FetchError, 'getMetadata'> | null =
       err instanceof HTTPError
         ? await err.response.json()
         : err instanceof Error && err.name !== 'AbortError'
-        ? { statusCode: 500, error: err.name, message: err.message }
+        ? { statusCode: -1, error: err.name, message: err.message }
         : null;
-    return [fetchError, null];
+    return [createError(error), null];
   }
 }
 
