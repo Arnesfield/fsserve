@@ -8,10 +8,12 @@ import {
   RouteGenericInterface
 } from 'fastify';
 import send from 'send';
+import { MAX_FILE_SIZE } from '../constants';
 import { FsError } from '../core/error';
 import { FsServe } from '../core/fsserve';
 import { guard } from '../plugins/guard';
 import { jwt } from '../plugins/jwt';
+import { UploadAction } from '../types/core.types';
 import { Operation } from '../types/operation.types';
 import { ServeOptions } from '../types/serve.types';
 
@@ -27,7 +29,7 @@ export const fileRoute: FastifyPluginCallback<FileRoutesOptions> = (
 ) => {
   const { options } = opts;
   fastify.register(jwt, { verify: !!options.password });
-  const route = new FileRoute(opts.fsserve);
+  const route = new FileRoute(opts.fsserve, options);
   route.root(fastify);
   // download
   fastify.register((instance, _opts, done) => {
@@ -46,7 +48,10 @@ export const fileRoute: FastifyPluginCallback<FileRoutesOptions> = (
 };
 
 class FileRoute {
-  constructor(protected readonly fsserve: FsServe) {}
+  constructor(
+    protected readonly fsserve: FsServe,
+    protected readonly options: ServeOptions
+  ) {}
 
   // GET /
   root(fastify: FastifyInstance) {
@@ -138,21 +143,29 @@ class FileRoute {
         if (!data) {
           throw new FsError(400, 'No file to upload.');
         }
-        const pathField = data.fields.path;
-        const pathPart = (
-          Array.isArray(pathField) ? pathField[0] : pathField
-        ) as MultipartValue<string> | undefined;
-        const path = pathPart?.value;
+        const [pathField, actionField, sizeField] = [
+          data.fields.path,
+          data.fields.action,
+          data.fields.size
+        ] as (MultipartValue<string> | undefined)[];
+        const path = pathField?.value;
         if (path != null && typeof path !== 'string') {
           throw new FsError(400, 'Not a valid upload path.');
         }
-        const target = await this.fsserve.upload(
+        const size = parseInt(`${sizeField?.value}`);
+        if (!isFinite(size)) {
+          throw new FsError(400, 'Missing file size.');
+        } else if (size > (this.options.size ?? MAX_FILE_SIZE)) {
+          throw new fastify.multipartErrors.RequestFileTooLargeError();
+        }
+        const upload = await this.fsserve.upload(
           data.file,
-          data.filename,
+          { name: data.filename, size },
+          actionField?.value as UploadAction | undefined,
           path
         );
-        const file = await this.fsserve.file(target);
-        return reply.status(200).send(file);
+        const file = await this.fsserve.file(upload.path);
+        return reply.status(upload.created ? 201 : 200).send(file);
       }
     });
   }

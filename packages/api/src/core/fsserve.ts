@@ -7,7 +7,8 @@ import {
   FsObject,
   FsServeOptions,
   FsStreamCollection,
-  StatsMap
+  StatsMap,
+  UploadAction
 } from '../types/core.types';
 import { createDate } from '../utils/date';
 import * as fsw from '../utils/fsw';
@@ -94,23 +95,89 @@ class FsServeClass {
     };
   }
 
-  async upload(
-    stream: NodeJS.ReadableStream,
-    fileName: string,
+  private async preupload(
+    file: { name: string; size: number },
+    action: UploadAction | undefined,
     path?: string
-  ): Promise<string> {
+  ) {
     const target = fsw.absolute(
       this.rootDir,
       typeof path === 'string' ? path : '',
-      fileName
+      file.name
     );
-    const filePath = await fsw.getWritePath(target);
+    let existingFile: FsFile;
     try {
-      await pipeline(stream, fs.createWriteStream(filePath));
-      return filePath;
+      existingFile = await createFsObject<FsFile>(
+        target,
+        await fsw.stat(target)
+      );
+    } catch (error: unknown) {
+      // skip error if file is not found
+      if (error instanceof FsError && error.statusCode === 404) {
+        return { target };
+      }
+      throw error;
+    }
+
+    let error:
+      | {
+          message: string;
+          metadata: { file?: FsFile; actions: UploadAction[] };
+        }
+      | undefined;
+    if (!existingFile.stats.isFile()) {
+      error = {
+        message: 'File name already exists.',
+        metadata: { actions: [UploadAction.Rename] }
+      };
+    } else if (existingFile.size < file.size) {
+      // if file is (probably) not fully uploaded, allow resume upload
+      error = {
+        message: 'Partial file already exists.',
+        metadata: { file: existingFile, actions: Object.values(UploadAction) }
+      };
+    } else {
+      error = {
+        message: 'File already exists.',
+        metadata: {
+          file: existingFile,
+          actions: [UploadAction.Rename, UploadAction.Replace]
+        }
+      };
+    }
+    if (error && (!action || !error.metadata.actions.includes(action))) {
+      throw new FsError(409, error.message, error.metadata);
+    }
+    return { target, file: existingFile, action };
+  }
+
+  async upload(
+    stream: NodeJS.ReadableStream,
+    file: { name: string; size: number },
+    action: UploadAction | undefined,
+    path?: string
+  ): Promise<{ path: string; created: boolean }> {
+    const data = await this.preupload(file, action, path);
+    let writePath = data.target;
+    const streamOptions: { flags?: string } = {};
+    if (data.file) {
+      switch (data.action) {
+        case UploadAction.Resume:
+          streamOptions.flags = 'a';
+          break;
+        case UploadAction.Rename:
+          writePath = await fsw.getWritePath(data.target);
+          break;
+        case UploadAction.Replace:
+          break;
+      }
+    }
+    // TODO: handle file locking?
+    try {
+      await pipeline(stream, fs.createWriteStream(writePath, streamOptions));
+      const created = !data.file || data.action !== UploadAction.Resume;
+      return { path: writePath, created };
     } catch {
-      // no await so it deletes asynchronously
-      fsw.unlink(filePath);
       throw new FsError(500, 'Unable to upload file.');
     }
   }

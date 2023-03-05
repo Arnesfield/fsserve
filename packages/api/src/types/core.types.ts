@@ -45,3 +45,9 @@ export type FsStreamCollection = FsStreamObject | FsStreamArchive;
 export interface FsServeOptions {
   rootDir?: string;
 }
+
+export enum UploadAction {
+  Resume = 'Resume',
+  Rename = 'Rename',
+  Replace = 'Replace'
+}
