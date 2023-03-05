@@ -21,7 +21,6 @@ export const webRoute: FastifyPluginCallback<WebRouteOptions> = (
   fastify.register(fastifyStatic, {
     root: path.join(__dirname, options.buildPath)
   });
-  fastify.get('/', (_, reply) => reply.sendFile('index.html'));
   fastify.setNotFoundHandler((request, reply) => {
     if (request.url.startsWith(options.apiPath)) {
       throw new FsError(404, `Cannot ${request.method} ${request.url}`);
