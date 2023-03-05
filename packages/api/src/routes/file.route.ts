@@ -4,10 +4,9 @@ import contentDisposition from 'content-disposition';
 import {
   FastifyInstance,
   FastifyPluginCallback,
-  FastifyRequest,
+  FastifyReply,
   RouteGenericInterface
 } from 'fastify';
-import send from 'send';
 import { MAX_FILE_SIZE } from '../constants';
 import { FsError } from '../core/error';
 import { FsServe } from '../core/fsserve';
@@ -69,8 +68,8 @@ class FileRoute {
     });
   }
 
-  protected send(request: FastifyRequest, filePath: string) {
-    return send(request.raw, filePath, {
+  protected sendFile(reply: FastifyReply, path: string) {
+    return reply.sendFile(path, this.options.rootDir || process.cwd(), {
       acceptRanges: true,
       cacheControl: false,
       dotfiles: 'allow'
@@ -92,12 +91,11 @@ class FileRoute {
       },
       handler: async (request, reply) => {
         const file = await this.fsserve.file(request.query.path);
-        return reply
-          .header(
-            'Content-Disposition',
-            contentDisposition(file.name, { type: 'inline' })
-          )
-          .send(this.send(request, file.path));
+        reply.header(
+          'Content-Disposition',
+          contentDisposition(file.name, { type: 'inline' })
+        );
+        return this.sendFile(reply, file.path);
       }
     });
   }
@@ -122,7 +120,7 @@ class FileRoute {
         const { file } = collection;
         reply.header('Content-Disposition', contentDisposition(file.name));
         if (!collection.virtual) {
-          return reply.send(this.send(request, file.path));
+          return this.sendFile(reply, file.path);
         }
         return reply.type(file.type).send(collection.stream());
       }
