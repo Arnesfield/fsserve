@@ -5,6 +5,12 @@ import type { FsFile } from '../types/core.types';
 import { createError } from './error';
 import type { FetchError } from './fetch';
 
+export enum UploadAction {
+  Resume = 'Resume',
+  Rename = 'Rename',
+  Replace = 'Replace'
+}
+
 export interface UploadItem {
   id: string;
   file: File;
@@ -12,7 +18,7 @@ export interface UploadItem {
   request?: XMLHttpRequest;
   progress: number;
   response?: FsFile;
-  error?: FetchError | null;
+  error?: FetchError<{ file?: FsFile; actions: UploadAction[] }> | null;
 }
 
 export interface UploaderOptions {
@@ -42,7 +48,11 @@ export function useUploader(urlOrOptions: string | UploaderOptions) {
   }
 
   function cancel(file: File) {
-    return handleCancel(file).item;
+    const { item } = handleCancel(file);
+    if (item) {
+      save(item.file, { error: undefined });
+    }
+    return item;
   }
 
   function remove(file: File) {
@@ -72,9 +82,14 @@ export function useUploader(urlOrOptions: string | UploaderOptions) {
     }
   }
 
-  function upload(file: File, path: string | null) {
+  function upload(
+    file: File,
+    data: { path: string | null; action?: UploadAction; start?: number }
+  ) {
+    // abort existing upload
+    handleCancel(file);
     const request = new XMLHttpRequest();
-    const item = save(file, { request });
+    const item = save(file, { request, status: 'init', progress: 0 });
     const result = new Promise<boolean>(resolve => {
       let status: 'done' | 'error' | 'aborted' = 'error';
       const done = () => {
@@ -126,9 +141,20 @@ export function useUploader(urlOrOptions: string | UploaderOptions) {
       if (csrfToken) {
         request.setRequestHeader('X-CSRF-Token', csrfToken);
       }
+      // prepare data to send (make sure file is added last)
       const formData = new FormData();
-      path && formData.append('path', path);
-      formData.append('file', file);
+      formData.append('size', file.size.toString());
+      data.action && formData.append('action', data.action);
+      data.path && formData.append('path', data.path);
+      // make sure file props are included in blob
+      const uploadFile =
+        data.start == null
+          ? file
+          : new File([file.slice(data.start)], file.name, {
+              type: file.type,
+              lastModified: file.lastModified
+            });
+      formData.append('file', uploadFile);
       request.send(formData);
     });
     return { item, result };

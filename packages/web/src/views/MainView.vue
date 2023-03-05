@@ -8,7 +8,7 @@ import { useConfig } from '../config/config';
 import { meta } from '../config/meta';
 import type { FsFile, FsObject } from '../types/core.types';
 import { useFetch } from '../utils/fetch';
-import { useUploader, type UploadItem } from '../utils/uploader';
+import { UploadAction, useUploader, type UploadItem } from '../utils/uploader';
 
 // TODO: separate components?
 
@@ -77,7 +77,7 @@ function upload(event: Event) {
     state.showUploads = true;
   }
   for (const file of files) {
-    uploader.upload(file, path.value);
+    uploader.upload(file, { path: path.value });
   }
   // clear input field
   if (input.value) {
@@ -110,6 +110,15 @@ function removeUploadItem(item: UploadItem) {
   if (uploader.items.length === 0) {
     state.showUploads = false;
   }
+}
+
+function retryUploadItem(item: UploadItem, action?: UploadAction) {
+  // include start when resuming upload
+  const start =
+    action === UploadAction.Resume
+      ? item.error?.metadata?.file?.size
+      : undefined;
+  uploader.upload(item.file, { action, start, path: path.value });
 }
 </script>
 
@@ -210,6 +219,8 @@ function removeUploadItem(item: UploadItem) {
         v-show="state.showUploads"
         :items="uploader.items"
         @remove="removeUploadItem"
+        @retry="retryUploadItem"
+        @cancel="item => uploader.cancel(item.file)"
       />
     </div>
   </main>

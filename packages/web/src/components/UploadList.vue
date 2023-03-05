@@ -1,18 +1,18 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { UploadItem } from '../utils/uploader';
+import type { UploadAction, UploadItem } from '../utils/uploader';
+import UploadListItem from './UploadListItem.vue';
 
 const props = defineProps<{ items: UploadItem[] }>();
-defineEmits<{ (event: 'remove', item: UploadItem): void }>();
+defineEmits<{
+  (event: 'cancel', item: UploadItem): void;
+  (event: 'remove', item: UploadItem): void;
+  (event: 'retry', item: UploadItem, action?: UploadAction): void;
+}>();
 
 const uploaded = computed(() => {
   return props.items.filter(item => item.status === 'done');
 });
-
-// NOTE: taken from https://stackoverflow.com/a/18358056/7013346
-function getProgress(progress: number) {
-  return +(Math.round(+`${progress}e+2`) + 'e-2');
-}
 </script>
 
 <template>
@@ -25,27 +25,14 @@ function getProgress(progress: number) {
     </div>
     <div v-if="props.items.length === 0">Nothing to upload :(</div>
     <ul v-else>
-      <li class="upload-item" :key="item.id" v-for="item of props.items">
-        <button type="button" @click="$emit('remove', item)">x</button>
-        <span>
-          <strong>{{ item.file.name }}</strong>
-          <template v-if="item.status !== 'init'"> - </template>
-          <template v-if="item.status === 'done'">Done</template>
-          <template v-else-if="item.status === 'aborted'">Cancelled</template>
-          <template v-else-if="item.status === 'error'">
-            {{ item.error ? item.error.message : 'An error occurred.' }}
-          </template>
-          <template v-else-if="item.status === 'uploading'">
-            Uploading: {{ getProgress(item.progress) }}%
-          </template>
-        </span>
-      </li>
+      <UploadListItem
+        v-for="item of props.items"
+        :item="item"
+        :key="item.id"
+        @cancel="$emit('cancel', item)"
+        @remove="$emit('remove', item)"
+        @retry="action => $emit('retry', item, action)"
+      />
     </ul>
   </div>
 </template>
-
-<style scoped>
-.upload-item button {
-  margin-right: 8px;
-}
-</style>
