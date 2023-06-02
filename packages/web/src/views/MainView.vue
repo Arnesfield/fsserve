@@ -8,6 +8,7 @@ import { useConfig } from '../config/config';
 import { meta } from '../config/meta';
 import type { FsFile, FsObject } from '../types/core.types';
 import { useFetch } from '../utils/fetch';
+import { title } from '../utils/title';
 import { UploadAction, useUploader, type UploadItem } from '../utils/uploader';
 
 // TODO: separate components?
@@ -17,6 +18,8 @@ const path = computed(() => {
   const qp = route.query.path;
   return Array.isArray(qp) ? qp[0] : typeof qp === 'string' ? qp : null;
 });
+watch(path, () => title(path.value));
+
 const input = ref<HTMLInputElement>();
 const paths = reactive<string[]>([]);
 const state = reactive({ showUploads: false });
@@ -136,7 +139,12 @@ function retryUploadItem(item: UploadItem, action?: UploadAction) {
     </header>
     <div :class="{ content: true, 'show-uploads': state.showUploads }">
       <div v-if="reqFiles.state.isLoading">Loading...</div>
-      <template v-if="reqFiles.state.data && reqFiles.state.data.length > 0">
+      <div v-if="reqFiles.state.error" class="error">
+        {{ reqFiles.state.error.message }}
+      </div>
+      <template
+        v-else-if="reqFiles.state.data && reqFiles.state.data.length > 0"
+      >
         <div>
           <input
             id="all"
@@ -187,7 +195,11 @@ function retryUploadItem(item: UploadItem, action?: UploadAction) {
         <input hidden multiple type="file" ref="input" @change="upload" />
         <button
           type="button"
-          :disabled="!config.operations.upload"
+          :disabled="
+            reqFiles.state.isLoading ||
+            !!reqFiles.state.error ||
+            !config.operations.upload
+          "
           @click="handleUpload"
         >
           Upload
