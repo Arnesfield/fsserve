@@ -2,7 +2,7 @@ import fastifyCookie from '@fastify/cookie';
 import fastifyCsrfProtection from '@fastify/csrf-protection';
 import fastifyJwt from '@fastify/jwt';
 import fastifyStatic from '@fastify/static';
-import { randomBytes as randomBytesFn } from 'crypto';
+import { randomBytes as randomBytesFn, createHmac } from 'crypto';
 import Fastify, { FastifyInstance } from 'fastify';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -32,9 +32,12 @@ export async function createServer(
     }
   });
   const secret = options.secret || (await randomBytes(32)).toString('base64');
+  const hmacKey = createHmac('sha256', secret).update(secret).digest('hex');
   fastify.register(fastifyCookie, { secret });
   fastify.register(fastifyCsrfProtection, {
+    sessionPlugin: '@fastify/cookie',
     cookieKey: COOKIE_CSRF_TOKEN,
+    csrfOpts: { hmacKey },
     cookieOpts: { signed: true, httpOnly: true }
   });
   fastify.register(fastifyJwt, {
