@@ -125,16 +125,24 @@ function retryUploadItem(item: UploadItem, action?: UploadAction) {
 <template>
   <main>
     <header>
-      <component
-        class="up"
-        :to="parentPath"
-        :is="disableUp ? 'span' : 'router-link'"
-      >
-        <button type="button" :disabled="disableUp">Up</button>
-      </component>
-      <h3>Files</h3>
+      <div class="container mx-auto">
+        <component
+          class="up"
+          :to="parentPath"
+          :is="disableUp ? 'span' : 'router-link'"
+        >
+          <button type="button" :disabled="disableUp">Up</button>
+        </component>
+        <h3>Files</h3>
+      </div>
     </header>
-    <div :class="{ content: true, 'show-uploads': state.showUploads }">
+    <div
+      :class="{
+        content: true,
+        'show-uploads': state.showUploads,
+        'container mx-auto': true
+      }"
+    >
       <div v-if="reqFiles.state.isLoading">Loading...</div>
       <template v-if="reqFiles.state.data && reqFiles.state.data.length > 0">
         <div>
@@ -173,7 +181,12 @@ function retryUploadItem(item: UploadItem, action?: UploadAction) {
                 <label :for="`item-${item.path}`">{{ item.name }}</label>
                 <template v-if="config.operations.download">
                   &nbsp;
-                  <a :href="getViewApiPath(item)" target="_blank">View</a>
+                  <a
+                    class="shadow-md px-2 py-1 text-blue-500"
+                    :href="getViewApiPath(item)"
+                    target="_blank"
+                    >View</a
+                  >
                 </template>
               </div>
             </div>
@@ -183,7 +196,7 @@ function retryUploadItem(item: UploadItem, action?: UploadAction) {
     </div>
 
     <div :class="{ actions: true, 'show-uploads': state.showUploads }">
-      <div class="actions-container">
+      <div class="container mx-auto actions-container">
         <input hidden multiple type="file" ref="input" @change="upload" />
         <button
           type="button"
@@ -229,9 +242,12 @@ function retryUploadItem(item: UploadItem, action?: UploadAction) {
 <style scoped>
 header {
   padding: 8px;
+  border-bottom: 1px solid black;
+}
+
+header .container {
   display: flex;
   align-items: center;
-  border-bottom: 1px solid black;
 }
 
 header .up {
