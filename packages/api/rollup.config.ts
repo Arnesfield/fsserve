@@ -13,7 +13,6 @@ const root = '../../';
 const require = createRequire(import.meta.url);
 const pkg: typeof Pkg = require(root + 'package.json');
 const input = 'src/index.ts';
-const cli = 'src/cli.ts';
 const WATCH = process.env.ROLLUP_WATCH === 'true';
 const PROD = !WATCH || process.env.NODE_ENV === 'production';
 
@@ -23,14 +22,12 @@ function defineConfig(options: (false | RollupOptions)[]) {
 
 export default defineConfig([
   {
-    input: { index: input, cli },
+    input,
     output: {
-      dir: root + 'lib',
+      file: root + pkg.module,
       format: 'esm',
       exports: 'named',
-      sourcemap: PROD,
-      chunkFileNames: 'core.mjs',
-      entryFileNames: '[name].mjs'
+      sourcemap: PROD
     },
     plugins: [esbuild(), json(), externals(), outputSize()]
   },
@@ -50,7 +47,7 @@ export default defineConfig([
     plugins: [dts(), externals(), outputSize()]
   },
   !PROD && {
-    input: { index: input, cli },
+    input,
     watch: { skipWrite: true },
     plugins: [
       eslint({ overrideConfigFile: '.eslintrc.cjs' }),
