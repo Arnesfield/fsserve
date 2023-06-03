@@ -10,7 +10,7 @@ export function absolute(
   value: string,
   ...paths: string[]
 ): string {
-  const absolute = path.resolve(value, ...paths);
+  const absolute = path.resolve(from, value, ...paths);
   if (!absolute.startsWith(from)) {
     throw new FsError(403, 'Cannot access beyond current working directory.');
   }
@@ -58,14 +58,17 @@ export async function unlink(value: string): Promise<boolean> {
   }
 }
 
-export async function getWritePath(value: string): Promise<string> {
+export async function getWritePath(
+  from: string,
+  value: string
+): Promise<string> {
   let target = value;
   for (let increment = 0; true; increment++) {
     if (increment > 0) {
       const ext = path.extname(value);
       const n = increment ? `-${increment}` : '';
       const name = path.basename(value, ext) + n + ext;
-      target = absolute(path.dirname(value), name);
+      target = absolute(from, path.dirname(value), name);
     }
     try {
       await fs.promises.stat(target);

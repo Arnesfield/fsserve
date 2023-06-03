@@ -168,7 +168,7 @@ class FsServeClass {
           streamOptions.flags = 'a';
           break;
         case UploadAction.Rename:
-          writePath = await fsw.getWritePath(data.target);
+          writePath = await fsw.getWritePath(this.rootDir, data.target);
           break;
         case UploadAction.Replace:
           break;
