@@ -1,46 +1,10 @@
 import chalk from 'chalk-template';
-import { program } from 'commander';
+import { Command } from 'commander';
 import path from 'path';
 import { description, name, version } from '../../../package.json';
 import { MAX_FILE_SIZE } from './constants';
 import { serve } from './server';
 import { ServeOptions } from './types/serve.types';
-
-process.on('SIGINT', () => {
-  console.log(chalk`{red Stopped.}`);
-  process.exit(130); // Ctrl+C exit code
-});
-
-program
-  .name(name)
-  .description(description)
-  .argument('[dir]', 'directory to serve', '.')
-  .option('-p, --port <port>', 'server port', value => parseInt(value), 8080)
-  .option(
-    '-s, --size <size>',
-    'max file size',
-    value => parseInt(value),
-    MAX_FILE_SIZE
-  )
-  .option(
-    '-o, --operations <operations>',
-    'allow DRUM operations: Download, Remove, Upload, Modify',
-    'du'
-  )
-  .option(
-    '-P, --password <password>',
-    'require password to access server endpoints'
-  )
-  .option('-S, --secret <secret>', 'secret key (default: "secret")')
-  .option(
-    '-C, --cert [cert]',
-    'path to cert.pem (default: "cert.pem" when -C or -K options are provided)'
-  )
-  .option(
-    '-K, --key [key]',
-    'path to key.pem (default: "key.pem" when -C or -K options are provided'
-  )
-  .version(`v${version}`, '-v, --version');
 
 interface ProgramOptions {
   port: number;
@@ -52,8 +16,40 @@ interface ProgramOptions {
   key?: string | boolean;
 }
 
-function getOptions(): ServeOptions {
-  const options = program.opts<ProgramOptions>();
+function createProgram() {
+  return new Command()
+    .name(name)
+    .description(description)
+    .argument('[dir]', 'directory to serve', '.')
+    .option('-p, --port <port>', 'server port', value => parseInt(value), 8080)
+    .option(
+      '-s, --size <size>',
+      'max file size',
+      value => parseInt(value),
+      MAX_FILE_SIZE
+    )
+    .option(
+      '-o, --operations <operations>',
+      'allow DRUM operations: Download, Remove, Upload, Modify',
+      'du'
+    )
+    .option(
+      '-P, --password <password>',
+      'require password to access server endpoints'
+    )
+    .option('-S, --secret <secret>', 'secret key (default: "secret")')
+    .option(
+      '-C, --cert [cert]',
+      'path to cert.pem (default: "cert.pem" when -C or -K options are provided)'
+    )
+    .option(
+      '-K, --key [key]',
+      'path to key.pem (default: "key.pem" when -C or -K options are provided'
+    )
+    .version(`v${version}`, '-v, --version');
+}
+
+function getOptions(dir: string, options: ProgramOptions): ServeOptions {
   const operations = options.operations.toLowerCase();
   const ssl: ServeOptions['ssl'] = !(options.cert || options.key)
     ? undefined
@@ -64,7 +60,7 @@ function getOptions(): ServeOptions {
   return {
     port: options.port,
     size: options.size,
-    rootDir: path.resolve(program.processedArgs[0]),
+    rootDir: path.resolve(dir),
     password: options.password,
     secret: options.secret,
     ssl,
@@ -77,10 +73,20 @@ function getOptions(): ServeOptions {
   };
 }
 
-async function cli() {
+export async function cli(
+  options?: (options: ServeOptions) => ServeOptions
+): Promise<void> {
+  process.on('SIGINT', () => {
+    console.log(chalk`{red Stopped.}`);
+    process.exit(130); // Ctrl+C exit code
+  });
   try {
-    program.parse();
-    await serve(getOptions());
+    const program = createProgram().parse();
+    const opts = getOptions(
+      program.processedArgs[0],
+      program.opts<ProgramOptions>()
+    );
+    await serve(typeof options === 'function' ? options(opts) : opts);
   } catch (error: unknown) {
     const err =
       error instanceof Error
@@ -90,5 +96,3 @@ async function cli() {
     process.exitCode = 1;
   }
 }
-
-cli();
