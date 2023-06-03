@@ -46,6 +46,13 @@ export interface FsServeOptions {
   rootDir?: string;
 }
 
+export interface FsServeUploadOptions {
+  stream: NodeJS.ReadableStream;
+  file: { name: string; size: number };
+  action?: UploadAction;
+  path?: string;
+}
+
 export enum UploadAction {
   Resume = 'Resume',
   Rename = 'Rename',

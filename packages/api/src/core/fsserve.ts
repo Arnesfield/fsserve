@@ -6,6 +6,7 @@ import {
   FsFile,
   FsObject,
   FsServeOptions,
+  FsServeUploadOptions,
   FsStreamCollection,
   StatsMap,
   UploadAction
@@ -152,12 +153,13 @@ class FsServeClass {
   }
 
   async upload(
-    stream: NodeJS.ReadableStream,
-    file: { name: string; size: number },
-    action: UploadAction | undefined,
-    path?: string
+    options: FsServeUploadOptions
   ): Promise<{ path: string; created: boolean }> {
-    const data = await this.preupload(file, action, path);
+    const data = await this.preupload(
+      options.file,
+      options.action,
+      options.path
+    );
     let writePath = data.target;
     const streamOptions: { flags?: string } = {};
     if (data.file) {
@@ -174,7 +176,10 @@ class FsServeClass {
     }
     // TODO: handle file locking?
     try {
-      await pipeline(stream, fs.createWriteStream(writePath, streamOptions));
+      await pipeline(
+        options.stream,
+        fs.createWriteStream(writePath, streamOptions)
+      );
       const created = !data.file || data.action !== UploadAction.Resume;
       return { path: writePath, created };
     } catch {

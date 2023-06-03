@@ -141,27 +141,27 @@ class FileRoute {
         if (!data) {
           throw new FsError(400, 'No file to upload.');
         }
-        const [pathField, actionField, sizeField] = [
-          data.fields.path,
-          data.fields.action,
-          data.fields.size
-        ] as (MultipartValue<string> | undefined)[];
-        const path = pathField?.value;
+        const fields = data.fields as {
+          action?: MultipartValue<UploadAction>;
+          path?: MultipartValue<string>;
+          size?: MultipartValue<string>;
+        };
+        const path = fields.path?.value;
         if (path != null && typeof path !== 'string') {
           throw new FsError(400, 'Not a valid upload path.');
         }
-        const size = parseInt(`${sizeField?.value}`);
+        const size = parseInt(`${fields.size?.value}`);
         if (!isFinite(size)) {
           throw new FsError(400, 'Missing file size.');
         } else if (size > (this.options.size ?? MAX_FILE_SIZE)) {
           throw new fastify.multipartErrors.RequestFileTooLargeError();
         }
-        const upload = await this.fsserve.upload(
-          data.file,
-          { name: data.filename, size },
-          actionField?.value as UploadAction | undefined,
+        const upload = await this.fsserve.upload({
+          stream: data.file,
+          file: { name: data.filename, size },
+          action: fields.action?.value,
           path
-        );
+        });
         const file = await this.fsserve.file(upload.path);
         return reply.status(upload.created ? 201 : 200).send(file);
       }
