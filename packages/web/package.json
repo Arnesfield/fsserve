@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "build": "concurrently -r --kill-others-on-fail npm:create npm:check",
-    "check": "vue-tsc --noEmit",
+    "check": "vue-tsc --build --force",
     "create": "vite build",
     "dev": "vite",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --ignore-path ../../.gitignore",
