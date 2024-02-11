@@ -143,7 +143,10 @@ function retryUploadItem(item: UploadItem, action?: UploadAction) {
       >
         <button type="button" :disabled="disableUp">Up</button>
       </component>
-      <h3 dir="rtl">{{ path || 'Files' }}</h3>
+      <!-- NOTE: taken from https://stackoverflow.com/a/24800788/7013346 -->
+      <h3>
+        <bdi>{{ path || 'Files' }}</bdi>
+      </h3>
     </header>
     <div
       ref="content"
@@ -287,8 +290,10 @@ header {
     margin-right: 8px;
   }
   h3 {
+    direction: rtl;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 
@@ -332,7 +337,7 @@ main {
       column-gap: 8px;
     }
     .item-icon {
-      color: transparent;
+      filter: grayscale(1);
       text-shadow: 0 0 0 var(--color-text);
     }
     .item-title {
