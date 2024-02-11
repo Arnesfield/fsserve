@@ -7,6 +7,7 @@ import UploadList from '../components/UploadList.vue';
 import { useConfig } from '../config/config';
 import { meta } from '../config/meta';
 import type { FsFile, FsObject } from '../types/core.types';
+import { createDate } from '../utils/date';
 import { useFetch } from '../utils/fetch';
 import { title } from '../utils/title';
 import { UploadAction, useUploader, type UploadItem } from '../utils/uploader';
@@ -160,7 +161,7 @@ function retryUploadItem(item: UploadItem, action?: UploadAction) {
             Directory is empty.
           </div>
           <ul v-else class="item-container">
-            <li>
+            <li class="item-select-all">
               <input
                 id="all"
                 type="checkbox"
@@ -188,7 +189,17 @@ function retryUploadItem(item: UploadItem, action?: UploadAction) {
                 <span v-if="item.kind === 'directory'" class="item-icon">
                   &#128193;
                 </span>
-                {{ item.name }}
+                <span class="item-title">
+                  <div>{{ item.name }}</div>
+                  <div class="item-subtitle">
+                    <span v-if="item.stats.mtime" class="item-modified">
+                      {{ createDate(new Date(item.stats.mtime)) }}
+                    </span>
+                    <span v-if="item.hSize !== null" class="item-size">
+                      {{ item.hSize }}
+                    </span>
+                  </div>
+                </span>
               </label>
               <component
                 v-if="item.kind === 'directory'"
@@ -312,22 +323,45 @@ main {
     display: flex;
     padding: 2px 8px;
     column-gap: 8px;
-    &:nth-child(odd) {
+    &:nth-child(even) {
       background-color: var(--color-background-mute);
     }
     label {
       flex: 1;
+      display: flex;
       overflow: hidden;
-      word-wrap: break-word;
+      column-gap: 8px;
     }
     .item-icon {
       color: transparent;
       text-shadow: 0 0 0 var(--color-text);
     }
+    .item-title {
+      flex: 1;
+      overflow: hidden;
+      word-wrap: break-word;
+    }
+    .item-subtitle {
+      display: flex;
+      column-gap: 4px;
+      color: var(--color-text);
+      font-size: 0.8em;
+      .item-modified {
+        flex: 1;
+      }
+    }
+    .item-icon,
     .item-action {
       margin-top: auto;
       margin-bottom: auto;
     }
+  }
+
+  .item-select-all {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background-color: var(--color-background);
   }
 }
 
