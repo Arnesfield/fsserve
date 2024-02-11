@@ -40,7 +40,10 @@ class FsServeClass {
       const stats = await fsw.stat(filePath.absolute);
       return createFsObject(filePath.relative, stats);
     });
-    return Promise.all(promises);
+    const files = await Promise.all(promises);
+    return files.sort(
+      (a, b) => +(b.kind === 'directory') - +(a.kind === 'directory')
+    );
   }
 
   async file(path: string): Promise<FsFile> {
