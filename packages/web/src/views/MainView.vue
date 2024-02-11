@@ -21,6 +21,7 @@ const path = computed(() => {
 watch(path, () => title(path.value));
 
 const input = ref<HTMLInputElement>();
+const content = ref<HTMLDivElement>();
 const paths = reactive<string[]>([]);
 const state = reactive({ showUploads: false });
 const { config } = useConfig();
@@ -57,6 +58,12 @@ async function fetchFiles() {
 }
 fetchFiles();
 watch(route, () => fetchFiles());
+watch(files, () => {
+  // scroll back up when changing directories
+  if (content.value) {
+    content.value.scrollTop = 0;
+  }
+});
 
 async function download() {
   const a = document.createElement('a');
@@ -127,7 +134,7 @@ function retryUploadItem(item: UploadItem, action?: UploadAction) {
 
 <template>
   <main>
-    <header>
+    <header class="container">
       <component
         class="up"
         :to="parentPath"
@@ -135,62 +142,83 @@ function retryUploadItem(item: UploadItem, action?: UploadAction) {
       >
         <button type="button" :disabled="disableUp">Up</button>
       </component>
-      <h3>Files</h3>
+      <h3 dir="rtl">{{ path || 'Files' }}</h3>
     </header>
-    <div :class="{ content: true, 'show-uploads': state.showUploads }">
-      <div v-if="reqFiles.state.isLoading">Loading...</div>
-      <div v-if="reqFiles.state.error" class="error">
-        {{ reqFiles.state.error.message }}
-      </div>
-      <template
-        v-else-if="reqFiles.state.data && reqFiles.state.data.length > 0"
-      >
-        <div>
-          <input
-            id="all"
-            type="checkbox"
-            class="checkbox"
-            :checked="isSelectedAll"
-            :disabled="!config.operations.download || reqFiles.state.isLoading"
-            @change="selectAll"
-          />
-          <label for="all">Select All</label>
+    <div
+      ref="content"
+      :class="{ content: true, 'show-uploads': state.showUploads }"
+    >
+      <div class="container">
+        <div v-if="reqFiles.state.isLoading" class="content-text">
+          Loading...
         </div>
-        <ul>
-          <li v-for="item of reqFiles.state.data" :key="item.path">
-            <div class="item-content">
+        <div v-else-if="reqFiles.state.error" class="content-text error">
+          {{ reqFiles.state.error.message }}
+        </div>
+        <template v-if="reqFiles.state.data">
+          <div v-if="reqFiles.state.data.length === 0" class="content-text">
+            Directory is empty.
+          </div>
+          <ul v-else class="item-container">
+            <li>
+              <input
+                id="all"
+                type="checkbox"
+                class="checkbox"
+                :checked="isSelectedAll"
+                :disabled="
+                  !config.operations.download || reqFiles.state.isLoading
+                "
+                @change="selectAll"
+              />
+              <label for="all">Select All</label>
+            </li>
+            <li v-for="item of reqFiles.state.data" :key="item.path">
               <input
                 type="checkbox"
                 class="checkbox"
-                :id="`item-${item.path}`"
+                :id="`item-path-${item.path}`"
                 :disabled="
                   !config.operations.download || reqFiles.state.isLoading
                 "
                 :checked="paths.includes(item.path)"
                 @change="() => handleCheck(item)"
               />
-              <div v-if="item.kind === 'directory'">
-                <component
-                  :to="{ query: { path: item.path } }"
-                  :is="reqFiles.state.isLoading ? 'span' : 'router-link'"
-                >
-                  {{ item.name }}
-                </component>
-              </div>
-              <div v-else>
-                <label :for="`item-${item.path}`">{{ item.name }}</label>
-                <template v-if="config.operations.download">
-                  &nbsp;
-                  <a :href="getViewApiPath(item)" target="_blank">View</a>
-                </template>
-              </div>
-            </div>
-          </li>
-        </ul>
-      </template>
+              <label :for="`item-path-${item.path}`">
+                <span v-if="item.kind === 'directory'" class="item-icon">
+                  &#128193;
+                </span>
+                {{ item.name }}
+              </label>
+              <component
+                v-if="item.kind === 'directory'"
+                :to="{ query: { path: item.path } }"
+                :is="reqFiles.state.isLoading ? 'span' : 'router-link'"
+                class="item-action"
+              >
+                Open
+              </component>
+              <a
+                v-else-if="config.operations.download"
+                :href="getViewApiPath(item)"
+                target="_blank"
+                class="item-action"
+              >
+                View
+              </a>
+            </li>
+          </ul>
+        </template>
+      </div>
     </div>
 
-    <div :class="{ actions: true, 'show-uploads': state.showUploads }">
+    <div
+      :class="{
+        actions: true,
+        container: true,
+        'show-uploads': state.showUploads
+      }"
+    >
       <div class="actions-container">
         <input hidden multiple type="file" ref="input" @change="upload" />
         <button
@@ -243,11 +271,14 @@ header {
   padding: 8px;
   display: flex;
   align-items: center;
-  border-bottom: 1px solid black;
-}
-
-header .up {
-  margin-right: 8px;
+  border-bottom: 1px solid var(--color-border);
+  .up {
+    margin-right: 8px;
+  }
+  h3 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 }
 
 main {
@@ -257,40 +288,62 @@ main {
   flex-direction: column;
 }
 
-.content {
-  flex: 1;
-  overflow-y: auto;
-  padding: 8px;
-}
-
-.content.show-uploads {
-  flex: 0;
-}
-
-.item-content {
-  display: flex;
-}
-
-.checkbox {
-  margin-right: 8px;
-}
-
-.actions {
-  padding: 12px;
-  border-top: 1px solid black;
-}
-
 .content,
 .actions {
   transition: flex 200ms cubic-bezier(0.075, 0.82, 0.165, 1);
 }
 
-.actions.show-uploads {
+.content {
   flex: 1;
   overflow-y: auto;
+  min-height: 200px;
+  &.show-uploads {
+    flex: 0;
+  }
+  .content-text {
+    padding: 8px;
+  }
 }
 
-.actions-container > *:not(:last-child) {
-  margin-right: 8px;
+.item-container {
+  list-style-type: none;
+  padding-left: 0;
+  li {
+    display: flex;
+    padding: 2px 8px;
+    column-gap: 8px;
+    &:nth-child(odd) {
+      background-color: var(--color-background-mute);
+    }
+    label {
+      flex: 1;
+      overflow: hidden;
+      word-wrap: break-word;
+    }
+    .item-icon {
+      color: transparent;
+      text-shadow: 0 0 0 var(--color-text);
+    }
+    .item-action {
+      margin-top: auto;
+      margin-bottom: auto;
+    }
+  }
+}
+
+.actions {
+  padding: 12px;
+  border-top: 1px solid var(--color-border);
+  &.show-uploads {
+    flex: 1;
+    overflow-y: auto;
+    border-top: none;
+  }
+}
+
+.actions-container {
+  display: flex;
+  column-gap: 8px;
+  flex-wrap: wrap;
 }
 </style>
