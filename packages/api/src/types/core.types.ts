@@ -6,6 +6,8 @@ export interface FsFile {
   kind: 'file';
   type: string;
   size: number;
+  /** Human readable size. */
+  hSize: string;
   stats: Stats;
 }
 
@@ -15,6 +17,8 @@ export interface FsDirectory {
   kind: 'directory';
   type: null;
   size: number | null;
+  /** Human readable size. */
+  hSize: string | null;
   stats: Stats;
 }
 
@@ -24,8 +28,10 @@ export interface StatsMap {
   [Path: string]: Stats;
 }
 
-export interface FsFileCollection extends Omit<FsFile, 'size' | 'stats'> {
+export interface FsFileCollection
+  extends Omit<FsFile, 'size' | 'hSize' | 'stats'> {
   size: null;
+  hSize: null;
   stats: StatsMap;
 }
 

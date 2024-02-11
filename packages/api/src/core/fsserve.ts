@@ -92,6 +92,7 @@ class FsServeClass {
         kind: 'file',
         type: 'application/zip',
         size: null,
+        hSize: null,
         stats: statsMap
       },
       virtual: true,
