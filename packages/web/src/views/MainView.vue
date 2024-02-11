@@ -307,7 +307,6 @@ main {
 .content {
   flex: 1;
   overflow-y: auto;
-  min-height: 200px;
   &.show-uploads {
     flex: 0;
   }
