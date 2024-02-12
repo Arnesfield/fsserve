@@ -156,10 +156,13 @@ function retryUploadItem(item: UploadItem, action?: UploadAction) {
         <div v-if="reqFiles.state.isLoading" class="content-text">
           Loading...
         </div>
-        <div v-else-if="reqFiles.state.error" class="content-text error">
+        <div
+          v-if="!reqFiles.state.isLoading && reqFiles.state.error"
+          class="content-text"
+        >
           {{ reqFiles.state.error.message }}
         </div>
-        <template v-if="reqFiles.state.data">
+        <template v-else-if="reqFiles.state.data">
           <div v-if="reqFiles.state.data.length === 0" class="content-text">
             Directory is empty.
           </div>
