@@ -175,7 +175,12 @@ function retryUploadItem(item: UploadItem, action?: UploadAction) {
                 "
                 @change="selectAll"
               />
-              <label for="all">Select All</label>
+              <label for="all">
+                Select All ({{
+                  (paths.length > 0 ? paths.length + '/' : '') +
+                  reqFiles.state.data.length
+                }})
+              </label>
             </li>
             <li v-for="item of reqFiles.state.data" :key="item.path">
               <input
@@ -366,6 +371,11 @@ main {
     top: 0;
     z-index: 1;
     background-color: var(--color-background);
+    label {
+      display: inline;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
   }
 }
 
