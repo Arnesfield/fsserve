@@ -3,6 +3,7 @@ import qs from 'qs';
 import { computed, reactive, ref, watch } from 'vue';
 import { useRoute, type RouteLocationRaw } from 'vue-router';
 import { api } from '../api/api';
+import ListItem from '../components/ListItem.vue';
 import UploadList from '../components/UploadList.vue';
 import { useConfig } from '../config/config';
 import { meta } from '../config/meta';
@@ -167,68 +168,61 @@ function retryUploadItem(item: UploadItem, action?: UploadAction) {
             Directory is empty.
           </div>
           <ul v-else class="item-container">
-            <li class="item-select-all">
-              <input
-                id="all"
-                type="checkbox"
-                class="checkbox"
-                :checked="isSelectedAll"
-                :disabled="
-                  !config.operations.download || reqFiles.state.isLoading
-                "
-                @change="selectAll"
-              />
-              <label for="all">
+            <ListItem
+              checkbox
+              input-id="select-all"
+              class="item-select-all"
+              :checked="isSelectedAll"
+              :disabled="
+                !config.operations.download || reqFiles.state.isLoading
+              "
+              @check="selectAll"
+            >
+              <template #title>
                 Select All ({{
                   (paths.length > 0 ? paths.length + '/' : '') +
                   reqFiles.state.data.length
                 }})
-              </label>
-            </li>
-            <li v-for="item of reqFiles.state.data" :key="item.path">
-              <input
-                type="checkbox"
-                class="checkbox"
-                :id="`item-path-${item.path}`"
-                :disabled="
-                  !config.operations.download || reqFiles.state.isLoading
-                "
-                :checked="paths.includes(item.path)"
-                @change="() => handleCheck(item)"
-              />
-              <label :for="`item-path-${item.path}`">
-                <span v-if="item.kind === 'directory'" class="item-icon">
-                  &#128193;
-                </span>
-                <span class="item-title">
-                  <div>{{ item.name }}</div>
-                  <div class="item-subtitle">
-                    <span v-if="item.stats.mtime" class="item-modified">
-                      {{ createDate(new Date(item.stats.mtime)) }}
-                    </span>
-                    <span v-if="item.hSize !== null" class="item-size">
-                      {{ item.hSize }}
-                    </span>
-                  </div>
-                </span>
-              </label>
-              <component
-                v-if="item.kind === 'directory'"
-                :to="{ query: { path: item.path } }"
-                :is="reqFiles.state.isLoading ? 'span' : 'router-link'"
-                class="item-action"
-              >
-                Open
-              </component>
-              <a
-                v-else-if="config.operations.download"
-                :href="getViewApiPath(item)"
-                target="_blank"
-                class="item-action"
-              >
-                View
-              </a>
-            </li>
+              </template>
+            </ListItem>
+            <ListItem
+              v-for="item of reqFiles.state.data"
+              checkbox
+              :key="item.path"
+              :input-id="`item-box-${item.path}`"
+              :checked="isSelectedAll"
+              :disabled="
+                !config.operations.download || reqFiles.state.isLoading
+              "
+              @check="() => handleCheck(item)"
+            >
+              <template #icon v-if="item.kind === 'directory'">
+                &#128193;
+              </template>
+              <template #title>{{ item.name }}</template>
+              <template #subtitle1 v-if="item.stats.mtime">
+                {{ createDate(new Date(item.stats.mtime)) }}
+              </template>
+              <template #subtitle2 v-if="item.hSize !== null">
+                {{ item.hSize }}
+              </template>
+              <template #action>
+                <component
+                  v-if="item.kind === 'directory'"
+                  :to="{ query: { path: item.path } }"
+                  :is="reqFiles.state.isLoading ? 'span' : 'router-link'"
+                >
+                  Open
+                </component>
+                <a
+                  v-else-if="config.operations.download"
+                  :href="getViewApiPath(item)"
+                  target="_blank"
+                >
+                  View
+                </a>
+              </template>
+            </ListItem>
           </ul>
         </template>
       </div>
@@ -331,44 +325,6 @@ main {
 .item-container {
   list-style-type: none;
   padding-left: 0;
-  li {
-    display: flex;
-    padding: 2px 8px;
-    column-gap: 8px;
-    &:nth-child(even) {
-      background-color: var(--color-background-mute);
-    }
-    label {
-      flex: 1;
-      display: flex;
-      overflow: hidden;
-      column-gap: 8px;
-    }
-    .item-icon {
-      filter: grayscale(1);
-      text-shadow: 0 0 0 var(--color-text);
-    }
-    .item-title {
-      flex: 1;
-      overflow: hidden;
-      word-wrap: break-word;
-    }
-    .item-subtitle {
-      display: flex;
-      column-gap: 4px;
-      color: var(--color-text);
-      font-size: 0.8em;
-      .item-modified {
-        flex: 1;
-      }
-    }
-    .item-icon,
-    .item-action {
-      margin-top: auto;
-      margin-bottom: auto;
-    }
-  }
-
   .item-select-all {
     position: sticky;
     top: 0;
